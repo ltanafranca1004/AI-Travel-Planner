@@ -1,0 +1,38 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">Turtle Trips Logo</title>
+  <defs>
+    <linearGradient id="shellGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#34d399"></stop>
+      <stop offset="100%" stop-color="#059669"></stop>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"></feDropShadow>
+    </filter>
+  </defs>
+
+  <!-- Shell -->
+  <circle cx="64" cy="64" r="34" fill="url(#shellGrad)" filter="url(#softShadow)"></circle>
+
+  <!-- Scute lines -->
+  <path d="M64 30v68M30 64h68M44 44l40 40M84 44l-40 40" stroke="#065f46" stroke-width="2" opacity="0.3" fill="none"></path>
+
+  <!-- Head -->
+  <circle cx="98" cy="64" r="10" fill="#10b981"></circle>
+  <circle cx="101.5" cy="61.5" r="2" fill="#064e3b"></circle>
+
+  <!-- Legs -->
+  <circle cx="44" cy="40" r="8" fill="#10b981"></circle>
+  <circle cx="84" cy="40" r="8" fill="#10b981"></circle>
+  <circle cx="44" cy="88" r="8" fill="#10b981"></circle>
+  <circle cx="84" cy="88" r="8" fill="#10b981"></circle>
+
+  <!-- Tail -->
+  <polygon points="30,64 38,60 38,68" fill="#059669"></polygon>
+
+  <!-- TT monogram -->
+  <g transform="translate(64 64)">
+    <path d="M-10 -6h20v4h-8v14h-4v-14h-8z" fill="#ecfdf5" opacity="0.9"></path>
+    <path d="M-10 2h20v4h-8v6h-4v-6h-8z" fill="#ecfdf5" opacity="0.9"></path>
+  </g>
+</svg>

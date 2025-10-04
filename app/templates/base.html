@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "Turtle Trips" }}</title>
+
+    <!-- Tailwind (CDN) for fast dev -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- App styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-800">
+    <main class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>
