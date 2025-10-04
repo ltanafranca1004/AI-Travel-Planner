@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="pt-8 sm:pt-12">
-  <!-- Logo centered at top -->
+  <!-- Logo -->
   <div class="w-full flex justify-center mb-6">
     <img
-      src="{{ url_for('static', filename='img/turt1-removebg-preview.svg') }}"
+      src="{{ url_for('static', filename='img/placeholder.svg') }}"
       alt="Turtle Trips logo"
       class="h-16 sm:h-20"
     />
@@ -15,16 +15,37 @@
     Turtle Trips
   </h1>
 
-  <!-- Prompt -->
- <div class="mt-8 max-w-md mx-auto">
-    <form action="/plan" method="post" class="relative flex items-center">
-      <input
-        type="text"
-        name="destination"
-        class="search-bar-outline"
-        placeholder="Where to? e.g. Vancouver, Paris, tokyo..."
-      />
-    </form>
+  <!-- Step 1: Destination (custom autocomplete) -->
+  <div id="step1" class="mt-8 max-w-md mx-auto relative">
+    <input
+      id="destination"
+      type="text"
+      class="search-bar-outline w-full"
+      placeholder="Where to? e.g. Vancouver, Paris, Tokyo…"
+      spellcheck="false"
+      autocomplete="off"
+    />
+    <ul id="ac-panel" class="ac-panel hidden"></ul>
+    <p class="mt-2 text-center text-xs text-slate-500">Press Enter to confirm</p>
+  </div>
+
+  <!-- Step 2: How many days -->
+  <div id="step2" class="mt-6 max-w-md mx-auto hidden">
+    <input
+      id="days"
+      type="number"
+      min="1"
+      max="60"
+      class="search-bar-outline w-full"
+      placeholder="How many days?"
+      inputmode="numeric"
+    />
+    <p class="mt-2 text-center text-xs text-slate-500">Press Enter to confirm</p>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+  <script defer src="{{ url_for('static', filename='js/autocomplete.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/flow.js') }}"></script>
 {% endblock %}
