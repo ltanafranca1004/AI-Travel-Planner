@@ -1,4 +1,9 @@
 /* Turtle Trips — custom styles (keep minimal; Tailwind handles most UI) */
+/*https://colorhunt.co/palette/f6f5f2f0ebe3f3d0d7ffefef*/
+
+body {
+  background-color: #F6F5F2 !important; /* Black background */
+}
 
 .fade-in {
     animation: fade-in 300ms ease-in-out;
@@ -8,3 +13,26 @@
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+
+@keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+.search-bar-outline {
+  background-color: transparent;
+  border: 1px solid #9DB2BF;
+  border-radius: 25px;
+  padding: 10px 20px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.search-bar-outline::placeholder {
+    color: #9DB2BF;
+}
+
+.search-bar-outline:focus {
+  border-color: #526D82;
+}

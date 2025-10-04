@@ -16,8 +16,15 @@
   </h1>
 
   <!-- Prompt -->
-  <p class="mt-4 text-center text-slate-600 text-lg">
-    Where would you like to go?
-  </p>
+ <div class="mt-8 max-w-md mx-auto">
+    <form action="/plan" method="post" class="relative flex items-center">
+      <input
+        type="text"
+        name="destination"
+        class="search-bar-outline"
+        placeholder="Where to? e.g. Vancouver, Paris, tokyo..."
+      />
+    </form>
+  </div>
 </section>
 {% endblock %}
