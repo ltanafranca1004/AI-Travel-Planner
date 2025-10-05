@@ -14,8 +14,8 @@
   <div class="navbar-underline h-[1px] w-full bg-black/20"></div>
 </div>
 
-<!-- ✨ simple fade animation -->
 <style>
+/* ✨ simple fade animation */
 .fade-in {
   opacity: 0;
   transform: translateY(8px);
@@ -34,12 +34,11 @@
 
   <!-- top action bar -->
   <div class="max-w-6xl mx-auto mb-4 flex items-center justify-between fade-in">
-  <button id="back-btn" class="hidden px-6 py-3 bg-black text-white rounded-full text-sm font-medium 
-  hover:bg-slate-800 transition-all transform hover:scale-105 duration-200">
-    ← back
-  </button>
-</div>
-
+    <button id="back-btn" class="hidden px-6 py-3 bg-black text-white rounded-full text-sm font-medium 
+      hover:bg-slate-800 transition-all transform hover:scale-105 duration-200">
+      ← back
+    </button>
+  </div>
 
   <!-- two column canvas -->
   <div id="view" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start fade-in">
@@ -54,26 +53,20 @@
     </div>
   </div>
 
+  <!-- Fallback/raw -->
   <div id="raw-block" class="mt-8 hidden max-w-6xl mx-auto">
     <h2 class="text-sm font-semibold text-slate-600 mb-2">raw output</h2>
     <pre class="bg-white/80 rounded-xl p-4 shadow-sm text-xs overflow-x-auto" id="raw-pre"></pre>
   </div>
 
-
-<!-- Turtle Mascot Fixed with Speech Bubble -->
-<div id="turtle-mascot-wrapper" class="fixed left-2 right-2 bottom-12 z-50 flex flex-col items-start transition-all duration-300">
-  <div id="turtle-speech" class="mb-2 max-w-xs px-4 py-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm text-sm font-medium text-slate-800">
-    <!-- text will be set by JS -->
+  <!-- Turtle Mascot + speech -->
+  <div id="turtle-mascot-wrapper" class="fixed left-2 right-2 bottom-12 z-50 flex flex-col items-start transition-all duration-300">
+    <div id="turtle-speech" class="mb-2 max-w-xs px-4 py-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm text-sm font-medium text-slate-800"></div>
+    <img id="turtle-mascot" src="{{ url_for('static', filename='img/kiss.png') }}" alt="Turtle Mascot" class="h-40 w-auto pointer-events-none" />
   </div>
-  <img 
-    id="turtle-mascot" 
-    src="{{ url_for('static', filename='img/kiss.png') }}" 
-    alt="Turtle Mascot" 
-    class="h-40 w-auto pointer-events-none"
-  />
-</div>
 
   <script type="application/json" id="itinerary-json">{{ payload | tojson }}</script>
+</section>
 {% endblock %}
 
 {% block scripts %}
@@ -89,14 +82,15 @@
   const CITY    = localStorage.getItem('tt.city') || '';
   const COUNTRY = localStorage.getItem('tt.country_name') || '';
 
+  // Title
   const titleEl = document.getElementById('trip-title');
   if (CITY) titleEl.textContent = `your trip around ${CITY.toLowerCase()}!`;
   else if (COUNTRY) titleEl.textContent = `your trip around ${COUNTRY.toLowerCase()}!`;
   else titleEl.textContent = 'your trips!';
 
+  // ---- recover AI output ----
   let rawText = "";
   try { rawText = JSON.parse(rawNode.textContent || '""'); } catch { rawText = ""; }
-
   function extractJSON(text) {
     if (!text) return null;
     let t = text.trim();
@@ -115,26 +109,75 @@
     return;
   }
 
+  // ---- session cache helpers ----
   const mem = new Map();
   const cacheGet = k => { const s = sessionStorage.getItem(k); return s ? JSON.parse(s) : null; }
   const cacheSet = (k,v) => { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch{} }
 
-  async function fetchWikiImage(query) {
-    const key = `img:${query.toLowerCase()}`;
-    const cached = mem.get(key) || cacheGet(key);
+  // =====================================================================
+  // REPLACEMENT: Google Places Photos (instead of Wikipedia)
+  // =====================================================================
+  let __placesService = null;
+  function getPlacesService() {
+    if (__placesService) return __placesService;
+    __placesService = new google.maps.places.PlacesService(document.createElement('div'));
+    return __placesService;
+  }
+
+  function placesTextSearch(query) {
+    return new Promise((resolve) => {
+      getPlacesService().textSearch({ query }, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(results)) {
+          resolve(results);
+        } else {
+          resolve([]);
+        }
+      });
+    });
+  }
+
+  function placesGetDetails(placeId) {
+    return new Promise((resolve) => {
+      getPlacesService().getDetails(
+        { placeId, fields: ['name','photos'] },
+        (place, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && place) resolve(place);
+          else resolve(null);
+        }
+      );
+    });
+  }
+
+  async function fetchPlacePhotoForQuery(query) {
+    const ck = `gphoto:${query.toLowerCase()}`;
+    const cached = cacheGet(ck);
     if (cached !== null) return cached;
 
-    const sURL = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
-    const sJson = await fetch(sURL).then(r=>r.json()).catch(()=> ({}));
-    const title = sJson?.query?.search?.[0]?.title;
-    if (!title) { mem.set(key,null); cacheSet(key,null); return null; }
+    const results = await placesTextSearch(query);
 
-    const sumURL = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-    const pJson = await fetch(sumURL).then(r=>r.json()).catch(()=> ({}));
-    const url = pJson?.originalimage?.source || pJson?.thumbnail?.source || null;
-    const result = url ? { url, title: pJson?.title || title } : null;
-    mem.set(key, result); cacheSet(key, result);
-    return result;
+    // Prefer a result that already has photos inline
+    for (const r of results) {
+      if (Array.isArray(r.photos) && r.photos.length) {
+        const url = r.photos[0].getUrl({ maxWidth: 1200, maxHeight: 800 });
+        const out = { url, name: r.name || '', attributions: r.photos[0].html_attributions || [] };
+        cacheSet(ck, out);
+        return out;
+      }
+    }
+
+    // Otherwise try details for the top result
+    if (results[0]?.place_id) {
+      const det = await placesGetDetails(results[0].place_id);
+      if (det?.photos?.length) {
+        const url = det.photos[0].getUrl({ maxWidth: 1200, maxHeight: 800 });
+        const out = { url, name: det.name || '', attributions: det.photos[0].html_attributions || [] };
+        cacheSet(ck, out);
+        return out;
+      }
+    }
+
+    cacheSet(ck, null);
+    return null;
   }
 
   async function findImageForSpot(spot) {
@@ -145,41 +188,62 @@
       spot
     ];
     for (const q of tries) {
-      const hit = await fetchWikiImage(q);
-      if (hit?.url) return hit;
+      const res = await fetchPlacePhotoForQuery(q);
+      if (res?.url) return res;
     }
     return null;
   }
+  // =====================================================================
 
+  // ---- tiny helpers ----
   const el = (tag, cls, text)=>{ const n=document.createElement(tag); if(cls) n.className=cls; if(text!=null) n.textContent=text; return n; };
 
   function activityItem(act){
     const li = el('li','bg-white rounded-lg border overflow-hidden fade-in');
     const imgWrap = el('div','relative w-full h-40 bg-slate-100');
-    const img = el('img','w-full h-full object-cover absolute inset-0 hidden'); img.alt = act.spot || 'activity'; img.loading = 'lazy';
+    const img = el('img','w-full h-full object-cover absolute inset-0 hidden');
+    img.alt = act.spot || 'activity';
+    img.loading = 'lazy';
     imgWrap.appendChild(img);
+
     if (act.time_of_day) {
       const badge = el('div','absolute top-2 left-2 text-[10px] px-2 py-1 rounded-full bg-white/90 border');
-      badge.textContent = act.time_of_day; imgWrap.appendChild(badge);
+      badge.textContent = act.time_of_day;
+      imgWrap.appendChild(badge);
     }
+
     const body = el('div','p-3');
     body.appendChild(el('div','text-sm font-medium', act.spot || '(unspecified spot)'));
     if (act.description) body.appendChild(el('p','text-sm text-slate-600 mt-1', act.description));
-    li.appendChild(imgWrap); li.appendChild(body);
+
+    li.appendChild(imgWrap);
+    li.appendChild(body);
 
     (async () => {
       try {
         const hit = await findImageForSpot(act.spot);
-        if (hit?.url) { img.src = hit.url; img.classList.remove('hidden'); }
-        else {
-          const ph = el('div','absolute inset-0 flex items-center justify-center text-xs text-slate-500'); ph.textContent='no image found'; imgWrap.appendChild(ph);
+        if (hit?.url) {
+          img.src = hit.url;
+          img.classList.remove('hidden');
+          // Optional: show small attribution
+          if (hit.attributions && hit.attributions.length) {
+            const attr = el('div','absolute bottom-1 right-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded');
+            attr.innerHTML = 'photo';
+            imgWrap.appendChild(attr);
+          }
+        } else {
+          const ph = el('div','absolute inset-0 flex items-center justify-center text-xs text-slate-500');
+          ph.textContent='no image found';
+          imgWrap.appendChild(ph);
         }
       } catch {}
     })();
+
     return li;
   }
 
   function renderPlanCard(plan, idx){
+    // clickable card = "use this plan"
     const card = el(
       'div',
       'plan-card relative bg-white/80 rounded-2xl p-5 shadow-sm flex flex-col gap-4 transition transform cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-emerald-400 opacity-0 translate-y-4 duration-500'
@@ -190,6 +254,7 @@
       card.classList.remove('opacity-0', 'translate-y-4');
     });
 
+    // header + copy json pill
     const header = el('div','pr-28');
     const titleWrap = el('div');
     titleWrap.appendChild(el('h2','text-lg font-bold', plan.plan_name || `Plan ${idx+1}`));
@@ -205,12 +270,14 @@
     headWrap.appendChild(actions);
     card.appendChild(headWrap);
 
+    // per-day layout (your older layout)
     (plan.daily_plan || []).forEach(day => {
       const box = el('div','rounded-xl border p-4 space-y-3');
       const top = el('div','flex items-baseline justify-between gap-2');
       const left= el('div','font-semibold', `day ${day.day ?? ''}${day.date ? ` — ${day.date}` : ''}`);
       const theme = day.theme ? el('div','text-xs text-slate-600 italic', day.theme) : null;
-      top.appendChild(left); if (theme) top.appendChild(theme);
+      top.appendChild(left);
+      if (theme) top.appendChild(theme);
       box.appendChild(top);
 
       const list = el('ul','grid gap-3');
@@ -238,8 +305,10 @@
     return card;
   }
 
+  // initial render
   data.travel_plans.forEach((p,i)=> grid.appendChild(renderPlanCard(p,i)));
 
+  // ---- selection mode + sticky sync ----
   let chosenIndex = null;
   let heightObserver = null;
   let heightAdjust = null;
@@ -306,15 +375,37 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  const MAPS_KEY = "***REMOVED***";
+  // ---- mascot quips + footer avoidance
+  document.addEventListener('DOMContentLoaded', () => {
+    const mascotWrapper = document.getElementById('turtle-mascot-wrapper');
+    const speechEl = document.getElementById('turtle-speech');
+    const footer = document.querySelector('footer');
 
+    const phrases = [
+      "sea-ze the day!", "turtley excellent!", "fin-tastic picks!",
+      "shell yeah!", "you're on the right shell!", "these plans are turtley rad!"
+    ];
+    speechEl.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+
+    window.addEventListener('scroll', () => {
+      if (!mascotWrapper || !footer) return;
+      const footerRect = footer.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const overlap = windowHeight - footerRect.top;
+      mascotWrapper.style.bottom = overlap > 0 ? `${overlap + 24}px` : '3rem';
+    });
+  });
+
+  // ---- Google Maps + Places loader (note libraries=places)
+  const MAPS_KEY = "***REMOVED***";
   let mapsLoaded = !!(window.google && window.google.maps);
+
   function loadMapsOnce(){
     return new Promise((resolve) => {
       if (mapsLoaded) return resolve();
       if (!MAPS_KEY) return resolve();
       const s = document.createElement('script');
-      s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}`;
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places`;
       s.async = true;
       s.onload = ()=>{ mapsLoaded = true; resolve(); };
       s.onerror= ()=> resolve();
@@ -322,39 +413,7 @@
     });
   }
 
-
-  document.addEventListener('DOMContentLoaded', () => {
-  const mascotWrapper = document.getElementById('turtle-mascot-wrapper');
-  const speechEl = document.getElementById('turtle-speech');
-  const footer = document.querySelector('footer');
-
-  const phrases = [
-     "sea-ze the day!",
-     "turtley excellent!",
-    "fin-tastic picks!",
-     "shell yeah!",
-      "you're on the right shell!",
-      "these plans are turtley rad!",
-  ];
-
-  // pick a random phrase once
-  const randomIndex = Math.floor(Math.random() * phrases.length);
-  speechEl.textContent = phrases[randomIndex];
-
-  // adjust mascot position to not overlap footer
-  window.addEventListener('scroll', () => {
-    if (!mascotWrapper || !footer) return;
-
-    const footerRect = footer.getBoundingClientRect();
-    const windowHeight = window.innerHeight;
-    const overlap = windowHeight - footerRect.top;
-
-    mascotWrapper.style.bottom = overlap > 0 ? `${overlap + 24}px` : '3rem'; // higher than before
-  });
-});
-
-
-
+  // ---- Map init (shows ALL markers; dedup by spot; fits bounds)
   async function initMapForPlan(plan){
     await loadMapsOnce();
     const mapDiv = document.getElementById('map');
@@ -375,9 +434,12 @@
     const geocoder = new google.maps.Geocoder();
     const bounds = new google.maps.LatLngBounds();
 
+    // flatten activities
     const acts = (plan.daily_plan || []).flatMap(day =>
       (day.activities || []).map(a => ({...a, day: day.day, date: day.date}))
     );
+
+    // dedupe by spot (first occurrence wins)
     const bySpot = new Map();
     for (const a of acts) {
       const key = (a.spot || '').trim().toLowerCase();
@@ -385,6 +447,7 @@
     }
 
     let pointCount = 0;
+
     for (const a of bySpot.values()) {
       const queries = [
         [a.spot, CITY, COUNTRY].filter(Boolean).join(', '),
@@ -398,6 +461,7 @@
           const ck = `geo:${q.toLowerCase()}`;
           const cached = sessionStorage.getItem(ck);
           if (cached) { loc = JSON.parse(cached); break; }
+
           const { results } = await geocoder.geocode({ address: q });
           if (results && results[0]) {
             const p = results[0].geometry.location;
