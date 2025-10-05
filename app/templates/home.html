@@ -2,18 +2,18 @@
 {% block content %}
 <section class="pt-8 sm:pt-12">
   <!-- Logo -->
-  <div class="w-full flex justify-center mb-6">
-    <img
-      src="{{ url_for('static', filename='img/turt1-removebg-preview.svg') }}"
-      alt="Turtle Trips logo"
-      class="h-16 sm:h-20"
-    />
-  </div>
+<div class="w-full flex justify-center mb-6">
+  <img
+    src="{{ url_for('static', filename='img/turt1-removebg-preview.svg') }}"
+    alt="Turtle Trips logo"
+    class="h-32 sm:h-40 mx-auto max-w-full"
+  />
+</div>
 
   <!-- Title -->
-  <h1 class="text-3xl sm:text-4xl font-extrabold text-center tracking-tight">
-    Turtle Trips
-  </h1>
+ <h1 class="text-3xl sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif">
+  turtle trips.
+</h1>
 
   <!-- Step 1: Country -->
   <div id="step-country" class="mt-8 max-w-md mx-auto relative">
@@ -21,12 +21,12 @@
       id="country"
       type="text"
       class="search-bar-outline w-full"
-      placeholder="Which country?"
+      placeholder="which country? e.g canada, japan, italy…"
       spellcheck="false"
       autocomplete="off"
     />
     <ul id="country-panel" class="ac-panel hidden"></ul>
-    <p class="mt-2 text-center text-xs text-slate-500">Press Enter to confirm</p>
+    <p class="mt-2 text-center text-xs text-slate-500">press enter to confirm</p>
   </div>
 
   <!-- Step 2: City -->
@@ -40,7 +40,7 @@
       autocomplete="off"
     />
     <ul id="city-panel" class="ac-panel hidden"></ul>
-    <p class="mt-2 text-center text-xs text-slate-500">Press Enter to confirm</p>
+    <p class="mt-2 text-center text-xs text-slate-500">press enter to confirm</p>
   </div>
 
   <!-- Step 3: Dates (range picker) -->
