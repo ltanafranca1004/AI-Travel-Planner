@@ -26,7 +26,7 @@ def generate():
     # Create the prompt with the JSON payload.
     # The json.dumps() with indent=2 formats the JSON nicely for the prompt.
     #prompt = f"Using the following trip data, generate 3 different detailed day by day travel plans for the user, (note: $ = shoestring, $$ = budget, $$$ = comfortable, $$$$ = slurge, $$$$$ = luxury): ```json\n{json.dumps(payload, indent=2)}\n```"
-    prompt = f"Using the following trip data, generate 2 different day by day travel plans and put the location plans in json. Output only the json.(note : $ = shoestring, $$ = budget, $$$ = comfortable, $$$$ = slurge, $$$$$ = luxury): ```json\n{json.dumps(payload, indent=2)}\n```"
+    prompt = f"Using the following trip data, generate 2 different day by day travel plans and put the location plans in json. Output only the json. it is important that the json has to include an exact spot (ex. effiel tower, mcdonals.. etc.) that the traveller will go to no need for the coordinates just the name of the spot.(note : $ = shoestring, $$ = budget, $$$ = comfortable, $$$$ = slurge, $$$$$ = luxury): ```json\n{json.dumps(payload, indent=2)}\n```"
     print(prompt)
     try:
         # Send the prompt to the Gemini API
