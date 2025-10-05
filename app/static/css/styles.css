@@ -286,3 +286,21 @@ body {
   to { clip-path: inset(0 -34% 0 0); }
 }
 
+
+@keyframes float-turtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+#turtle-mascot {
+  animation: float-turtle 3s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}

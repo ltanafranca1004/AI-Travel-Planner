@@ -59,12 +59,19 @@
     <pre class="bg-white/80 rounded-xl p-4 shadow-sm text-xs overflow-x-auto" id="raw-pre"></pre>
   </div>
 
-  <div class="text-center mt-10 fade-in">
-    <a href="{{ url_for('main.home') }}"
-      class="inline-block px-6 py-3 bg-black text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-all transform hover:scale-105">
-      return home
-    </a>
+
+<!-- Turtle Mascot Fixed with Speech Bubble -->
+<div id="turtle-mascot-wrapper" class="fixed left-2 right-2 bottom-12 z-50 flex flex-col items-start transition-all duration-300">
+  <div id="turtle-speech" class="mb-2 max-w-xs px-4 py-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm text-sm font-medium text-slate-800">
+    <!-- text will be set by JS -->
   </div>
+  <img 
+    id="turtle-mascot" 
+    src="{{ url_for('static', filename='img/kiss.png') }}" 
+    alt="Turtle Mascot" 
+    class="h-40 w-auto pointer-events-none"
+  />
+</div>
 
   <script type="application/json" id="itinerary-json">{{ payload | tojson }}</script>
 {% endblock %}
@@ -314,6 +321,39 @@
       document.head.appendChild(s);
     });
   }
+
+
+  document.addEventListener('DOMContentLoaded', () => {
+  const mascotWrapper = document.getElementById('turtle-mascot-wrapper');
+  const speechEl = document.getElementById('turtle-speech');
+  const footer = document.querySelector('footer');
+
+  const phrases = [
+     "sea-ze the day!",
+     "turtley excellent!",
+    "fin-tastic picks!",
+     "shell yeah!",
+      "you're on the right shell!",
+      "these plans are turtley rad!",
+  ];
+
+  // pick a random phrase once
+  const randomIndex = Math.floor(Math.random() * phrases.length);
+  speechEl.textContent = phrases[randomIndex];
+
+  // adjust mascot position to not overlap footer
+  window.addEventListener('scroll', () => {
+    if (!mascotWrapper || !footer) return;
+
+    const footerRect = footer.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+    const overlap = windowHeight - footerRect.top;
+
+    mascotWrapper.style.bottom = overlap > 0 ? `${overlap + 24}px` : '3rem'; // higher than before
+  });
+});
+
+
 
   async function initMapForPlan(plan){
     await loadMapsOnce();
