@@ -5,11 +5,31 @@
     your trip.
   </h1>
 
-  <!-- Plans grid -->
-  <div id="plans-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+  <!-- top action bar -->
+  <div class="max-w-6xl mx-auto mb-4 flex items-center justify-between">
+    <button id="back-btn" class="hidden px-3 py-1 rounded-lg border text-sm hover:bg-slate-50">← back</button>
+    <div id="choose-tip" class="text-xs text-slate-600 rounded-full bg-white/60 px-3 py-1 shadow-sm">
+      Click a plan to choose it →
+    </div>
+  </div>
+
+  <!-- two column canvas (cards + map) -->
+  <div id="view" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+    <!-- plans grid (starts as two cards) -->
+    <div id="plans-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2"></div>
+
+    <!-- map column (hidden until a plan is chosen) -->
+    <div id="map-col" class="hidden">
+      <div class="md:sticky md:top-6">
+        <div class="bg-white/80 rounded-2xl p-3 shadow-sm">
+          <div id="map" class="w-full h-[75vh] rounded-xl bg-slate-100"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Fallback/raw -->
-  <div id="raw-block" class="mt-8 hidden">
+  <div id="raw-block" class="mt-8 hidden max-w-6xl mx-auto">
     <h2 class="text-sm font-semibold text-slate-600 mb-2">raw output</h2>
     <pre class="bg-white/80 rounded-xl p-4 shadow-sm text-xs overflow-x-auto" id="raw-pre"></pre>
   </div>
@@ -19,28 +39,29 @@
   </div>
 </section>
 
-<!-- Safely embed Gemini's string as JSON-string so we can recover it client-side -->
+<!-- Embed Gemini's string as JSON-string so we can recover it client-side -->
 <script type="application/json" id="itinerary-json">{{ payload | tojson }}</script>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
 (function () {
-  const container = document.getElementById('plans-grid');
-  const rawNode   = document.getElementById('itinerary-json');
-  const rawBlock  = document.getElementById('raw-block');
-  const rawPre    = document.getElementById('raw-pre');
+  const grid      = document.getElementById('plans-grid');
+  const mapCol    = document.getElementById('map-col');
+  const backBtn   = document.getElementById('back-btn');
+  const chooseTip = document.getElementById('choose-tip');
 
-  // Pull the city/country user chose (to bias image queries)
+  const rawNode = document.getElementById('itinerary-json');
+  const rawBlock= document.getElementById('raw-block');
+  const rawPre  = document.getElementById('raw-pre');
+
   const CITY    = localStorage.getItem('tt.city') || '';
   const COUNTRY = localStorage.getItem('tt.country_name') || '';
 
-  // 1) Recover the raw text Gemini returned (we stored it as a JSON string literal)
+  // ---- recover Gemini output ----
   let rawText = "";
   try { rawText = JSON.parse(rawNode.textContent || '""'); } catch { rawText = ""; }
 
-  // 2) Try to extract valid JSON from whatever format (handles ```json fences, extra prose)
   function extractJSON(text) {
     if (!text) return null;
     let t = text.trim();
@@ -50,55 +71,39 @@
     const last  = t.lastIndexOf('}');
     if (first > -1 && last > -1) t = t.slice(first, last + 1);
     try { return JSON.parse(t); }
-    catch {
-      try { return JSON.parse(t.replace(/,\s*([}\]])/g, '$1')); }
-      catch { return null; }
-    }
+    catch { try { return JSON.parse(t.replace(/,\s*([}\]])/g, '$1')); } catch { return null; } }
   }
-
   const data = extractJSON(rawText);
-
-  // 3) If parsing fails, show raw output
   if (!data || !Array.isArray(data.travel_plans)) {
     rawBlock.classList.remove('hidden');
     rawPre.textContent = rawText || "(no content)";
     return;
   }
 
-  // --- Wikimedia/Wikipedia image lookup (no API key needed) ---
-  const mem = new Map(); // in-tab cache
-  function cacheGet(k){ const s = sessionStorage.getItem(k); return s ? JSON.parse(s) : null; }
-  function cacheSet(k,v){ try { sessionStorage.setItem(k, JSON.stringify(v)); } catch{} }
+  // --- Wikimedia image helper ---
+  const mem = new Map();
+  const cacheGet = k => { const s = sessionStorage.getItem(k); return s ? JSON.parse(s) : null; }
+  const cacheSet = (k,v) => { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch{} }
 
   async function fetchWikiImage(query) {
     const key = `img:${query.toLowerCase()}`;
     const cached = mem.get(key) || cacheGet(key);
-    if (cached) return cached;
+    if (cached !== null) return cached;
 
-    // 1) Search for the best page title
-    const searchURL = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
-    const sRes = await fetch(searchURL);
-    const sJson = await sRes.json().catch(()=>({}));
+    const sURL = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
+    const sJson = await fetch(sURL).then(r=>r.json()).catch(()=> ({}));
     const title = sJson?.query?.search?.[0]?.title;
-
     if (!title) { mem.set(key,null); cacheSet(key,null); return null; }
 
-    // 2) Pull page summary (has thumbnail/original) — supports CORS
     const sumURL = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-    const pRes = await fetch(sumURL);
-    const pJson = await pRes.json().catch(()=>({}));
-
+    const pJson = await fetch(sumURL).then(r=>r.json()).catch(()=> ({}));
     const url = pJson?.originalimage?.source || pJson?.thumbnail?.source || null;
-    const result = url ? { url, title: pJson?.title || title, extract: pJson?.extract || "" } : null;
-
-    mem.set(key, result);
-    cacheSet(key, result);
+    const result = url ? { url, title: pJson?.title || title } : null;
+    mem.set(key, result); cacheSet(key, result);
     return result;
   }
-
   async function findImageForSpot(spot) {
     if (!spot) return null;
-    // Try "spot + city + country" first, then "spot + city", then just "spot"
     const tries = [
       [spot, CITY, COUNTRY].filter(Boolean).join(' '),
       [spot, CITY].filter(Boolean).join(' '),
@@ -111,109 +116,257 @@
     return null;
   }
 
-  // Small UI helpers
-  const el = (tag, cls, text) => {
-    const n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  };
+  // --- helpers ---
+  const el = (tag, cls, text)=>{ const n=document.createElement(tag); if(cls) n.className=cls; if(text!=null) n.textContent=text; return n; };
 
-  function activityCard(act) {
+  function activityItem(act){
     const li = el('li','bg-white rounded-lg border overflow-hidden');
-
-    // Image header
     const imgWrap = el('div','relative w-full h-40 bg-slate-100');
-    const img = el('img','w-full h-full object-cover absolute inset-0 hidden');
-    img.alt = act.spot || 'activity';
-    img.loading = 'lazy';
+    const img = el('img','w-full h-full object-cover absolute inset-0 hidden'); img.alt = act.spot || 'activity'; img.loading = 'lazy';
     imgWrap.appendChild(img);
-
-    // Tiny label overlay (time of day)
     if (act.time_of_day) {
       const badge = el('div','absolute top-2 left-2 text-[10px] px-2 py-1 rounded-full bg-white/90 border');
-      badge.textContent = act.time_of_day;
-      imgWrap.appendChild(badge);
+      badge.textContent = act.time_of_day; imgWrap.appendChild(badge);
     }
-
-    // Body
     const body = el('div','p-3');
-    const heading = el('div','text-sm font-medium', act.spot || '(unspecified spot)');
-    const desc = act.description ? el('p','text-sm text-slate-600 mt-1', act.description) : null;
+    body.appendChild(el('div','text-sm font-medium', act.spot || '(unspecified spot)'));
+    if (act.description) body.appendChild(el('p','text-sm text-slate-600 mt-1', act.description));
+    li.appendChild(imgWrap); li.appendChild(body);
 
-    body.appendChild(heading);
-    if (desc) body.appendChild(desc);
-
-    li.appendChild(imgWrap);
-    li.appendChild(body);
-
-    // async load image
     (async () => {
       try {
         const hit = await findImageForSpot(act.spot);
-        if (hit?.url) {
-          img.src = hit.url;
-          img.classList.remove('hidden');
-        } else {
-          // minimal placeholder
-          const ph = el('div','absolute inset-0 flex items-center justify-center text-xs text-slate-500');
-          ph.textContent = 'no image found';
-          imgWrap.appendChild(ph);
+        if (hit?.url) { img.src = hit.url; img.classList.remove('hidden'); }
+        else {
+          const ph = el('div','absolute inset-0 flex items-center justify-center text-xs text-slate-500'); ph.textContent='no image found'; imgWrap.appendChild(ph);
         }
-      } catch {
-        const ph = el('div','absolute inset-0 flex items-center justify-center text-xs text-slate-500');
-        ph.textContent = 'no image found';
-        imgWrap.appendChild(ph);
-      }
+      } catch {}
     })();
-
     return li;
   }
 
-  // Render each plan as one column
-  data.travel_plans.forEach((plan, idx) => {
-    const card = el('div', 'bg-white/80 rounded-2xl p-5 shadow-sm flex flex-col gap-4');
+  function renderPlanCard(plan, idx){
+    // clickable card = "use this plan"
+    const card = el('div','plan-card relative bg-white/80 rounded-2xl p-5 shadow-sm flex flex-col gap-4 transition transform cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-emerald-400');
+    card.tabIndex = 0;
 
-    // Header
-    const header = el('div', 'flex items-start justify-between gap-3');
+    // header + copy json pill
+    const header = el('div','pr-28');
     const titleWrap = el('div');
     titleWrap.appendChild(el('h2','text-lg font-bold', plan.plan_name || `Plan ${idx+1}`));
-    if (plan.plan_description) {
-      titleWrap.appendChild(el('p','text-sm text-slate-600 mt-1', plan.plan_description));
-    }
+    if (plan.plan_description) titleWrap.appendChild(el('p','text-sm text-slate-600 mt-1', plan.plan_description));
     header.appendChild(titleWrap);
 
-    const copyBtn = el('button','px-2.5 py-1 text-xs border rounded-lg hover:bg-slate-50');
-    copyBtn.textContent = 'copy plan json';
-    copyBtn.addEventListener('click', () => {
-      const onePlan = JSON.stringify(plan, null, 2);
-      navigator.clipboard.writeText(onePlan);
-      copyBtn.textContent = 'copied!';
-      setTimeout(() => copyBtn.textContent = 'copy plan json', 1200);
-    });
-    header.appendChild(copyBtn);
-    card.appendChild(header);
+    const actions = el('div','absolute top-4 right-4 flex gap-2');
+    const copyBtn = el('button','px-2.5 py-1 text-xs border rounded-lg hover:bg-slate-50','copy plan json');
+    actions.appendChild(copyBtn);
 
-    // Days
+    const headWrap = el('div','relative');
+    headWrap.appendChild(header);
+    headWrap.appendChild(actions);
+    card.appendChild(headWrap);
+
+    // --- Day-by-day sections (like before) ---
     (plan.daily_plan || []).forEach(day => {
-      const dayBox = el('div','rounded-xl border p-4 space-y-3');
-      const dayTitle = el('div','flex items-baseline justify-between gap-2');
-      const left = el('div','font-semibold', `day ${day.day ?? ''}${day.date ? ` — ${day.date}` : ''}`);
+      const box = el('div','rounded-xl border p-4 space-y-3');
+      const top = el('div','flex items-baseline justify-between gap-2');
+      const left= el('div','font-semibold', `day ${day.day ?? ''}${day.date ? ` — ${day.date}` : ''}`);
       const theme = day.theme ? el('div','text-xs text-slate-600 italic', day.theme) : null;
-      dayTitle.appendChild(left);
-      if (theme) dayTitle.appendChild(theme);
-      dayBox.appendChild(dayTitle);
+      top.appendChild(left); if (theme) top.appendChild(theme);
+      box.appendChild(top);
 
-      const list = el('ul','grid gap-3'); // stacked; keep it simple
-      (day.activities || []).forEach(act => {
-        list.appendChild(activityCard(act));
-      });
-      dayBox.appendChild(list);
-      card.appendChild(dayBox);
+      const list = el('ul','grid gap-3');
+      (day.activities || []).forEach(a => list.appendChild(activityItem(a)));
+      box.appendChild(list);
+      card.appendChild(box);
+    });
+    // --- end day-by-day ---
+
+    // interactions
+    copyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(JSON.stringify(plan, null, 2));
+      copyBtn.textContent = 'copied!'; setTimeout(()=> copyBtn.textContent='copy plan json', 1200);
+    });
+    card.addEventListener('click', () => choosePlan(idx, card, plan));
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choosePlan(idx, card, plan); }
     });
 
-    container.appendChild(card);
-  });
-})();
+    return card;
+  }
+
+  // initial render
+  data.travel_plans.forEach((p,i)=> grid.appendChild(renderPlanCard(p,i)));
+
+  // ---- selection mode + sticky sync ----
+  let chosenIndex = null;
+  let heightObserver = null;
+  let heightAdjust = null;
+
+  function enableStickySync(card){
+    const adjust = () => { mapCol.style.minHeight = card.getBoundingClientRect().height + 'px'; };
+    heightAdjust = adjust;
+    try { heightObserver?.disconnect(); heightObserver = new ResizeObserver(adjust); heightObserver.observe(card); } catch {}
+    adjust();
+    window.addEventListener('resize', adjust);
+  }
+  function disableStickySync(){
+    try { heightObserver?.disconnect(); } catch {}
+    heightObserver = null;
+    if (heightAdjust) window.removeEventListener('resize', heightAdjust);
+    heightAdjust = null;
+    mapCol.style.minHeight = '';
+  }
+
+  function choosePlan(idx, card, plan){
+    if (chosenIndex !== null) return;
+    chosenIndex = idx;
+
+    chooseTip.classList.add('hidden');
+
+    // fade out others
+    const allCards = Array.from(grid.children);
+    allCards.forEach(c=>{
+      if (c !== card) {
+        c.classList.add('opacity-0','pointer-events-none','transition-opacity','duration-300');
+        setTimeout(()=> c.classList.add('hidden'), 300);
+      } else {
+        c.classList.add('ring-1','ring-emerald-200');
+      }
+    });
+
+    // left lane only + reveal map
+    grid.classList.remove('md:col-span-2','md:grid-cols-2');
+    grid.classList.add('md:col-span-1','md:grid-cols-1');
+    mapCol.classList.remove('hidden');
+    mapCol.classList.add('md:block');
+    backBtn.classList.remove('hidden');
+
+    // keep only chosen card
+    grid.innerHTML = '';
+    card.classList.remove('hidden','opacity-0','pointer-events-none');
+    grid.appendChild(card);
+
+    enableStickySync(card);
+    initMapForPlan(plan); // adds ALL markers
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  backBtn.addEventListener('click', resetView);
+  function resetView(){
+    chosenIndex = null;
+    disableStickySync();
+    mapCol.classList.add('hidden');
+    mapCol.classList.remove('md:block');
+    backBtn.classList.add('hidden');
+    chooseTip.classList.remove('hidden');
+
+    grid.innerHTML = '';
+    grid.classList.remove('md:col-span-1','md:grid-cols-1');
+    grid.classList.add('md:col-span-2','md:grid-cols-2');
+
+    data.travel_plans.forEach((p,i)=> grid.appendChild(renderPlanCard(p,i)));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // -----------------------
+  // MAP CODE (shows ALL markers) + sticky works via enableStickySync
+  // -----------------------
+  const MAPS_KEY = "***REMOVED***"; // your key
+
+  let mapsLoaded = !!(window.google && window.google.maps);
+  function loadMapsOnce(){
+    return new Promise((resolve) => {
+      if (mapsLoaded) return resolve();
+      if (!MAPS_KEY) return resolve(); // no key: show placeholder
+      const s = document.createElement('script');
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}`;
+      s.async = true;
+      s.onload = ()=>{ mapsLoaded = true; resolve(); };
+      s.onerror= ()=> resolve(); // degrade gracefully
+      document.head.appendChild(s);
+    });
+  }
+
+  async function initMapForPlan(plan){
+    await loadMapsOnce();
+    const mapDiv = document.getElementById('map');
+    mapDiv.innerHTML = '';
+
+    if (!(window.google && google.maps)) {
+      const txt = document.createElement('div');
+      txt.className = 'p-4 text-sm text-slate-600';
+      txt.textContent = 'Map unavailable (missing or invalid Google Maps API key).';
+      mapDiv.appendChild(txt);
+      return;
+    }
+
+    const map = new google.maps.Map(mapDiv, {
+      center: { lat: 0, lng: 0 }, zoom: 2,
+      mapTypeControl: false, streetViewControl: false, fullscreenControl: false
+    });
+    const geocoder = new google.maps.Geocoder();
+    const bounds = new google.maps.LatLngBounds();
+
+    // flatten all activities, dedupe by spot
+    const acts = (plan.daily_plan || []).flatMap(day =>
+      (day.activities || []).map(a => ({...a, day: day.day, date: day.date}))
+    );
+    const bySpot = new Map();
+    for (const a of acts) {
+      const key = (a.spot || '').trim().toLowerCase();
+      if (key && !bySpot.has(key)) bySpot.set(key, a);
+    }
+
+    let pointCount = 0;
+    for (const a of bySpot.values()) {
+      const queries = [
+        [a.spot, CITY, COUNTRY].filter(Boolean).join(', '),
+        [a.spot, CITY].filter(Boolean).join(', '),
+        a.spot
+      ];
+
+      let loc = null;
+      for (const q of queries) {
+        try {
+          const ck = `geo:${q.toLowerCase()}`;
+          const cached = sessionStorage.getItem(ck);
+          if (cached) { loc = JSON.parse(cached); break; }
+          const { results } = await geocoder.geocode({ address: q });
+          if (results && results[0]) {
+            const p = results[0].geometry.location;
+            loc = { lat: p.lat(), lng: p.lng() };
+            sessionStorage.setItem(ck, JSON.stringify(loc));
+            break;
+          }
+        } catch {}
+      }
+
+      if (!loc) continue;
+
+      const latLng = new google.maps.LatLng(loc.lat, loc.lng);
+      new google.maps.Marker({ position: latLng, map, title: a.spot });
+      bounds.extend(latLng);
+      pointCount++;
+    }
+
+    if (pointCount > 0) {
+      map.fitBounds(bounds);
+      if (map.getZoom() > 15) map.setZoom(15);
+    } else {
+      // fallback to city center
+      try {
+        const { results } = await geocoder.geocode({ address: [CITY, COUNTRY].filter(Boolean).join(', ') });
+        if (results && results[0]) {
+          map.setCenter(results[0].geometry.location);
+          map.setZoom(11);
+        }
+      } catch {}
+    }
+  }
+  // -----------------------
+
+})(); // IIFE end
 </script>
 {% endblock %}
