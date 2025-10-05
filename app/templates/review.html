@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pt-8 sm:pt-12">
+  <h1 class="text-2xl font-extrabold text-center tracking-tight title-lower-serif mb-6">
+    trip questions.
+  </h1>
+
+  {# base trip info (still shown so user sees what we collected) #}
+  <div class="bg-white/80 rounded-xl p-4 shadow-sm max-w-xl mx-auto space-y-4">
+    <div class="grid grid-cols-2 gap-y-2 text-sm">
+      <div class="text-slate-500">country</div><div>{{ data.get('country','') }}</div>
+      <div class="text-slate-500">country code</div><div>{{ data.get('country_code','') }}</div>
+      <div class="text-slate-500">city</div><div>{{ data.get('city','') }}</div>
+      <div class="text-slate-500">destination</div><div>{{ data.get('destination','') }}</div>
+      <div class="text-slate-500">start date</div><div>{{ data.get('start_date','') }}</div>
+      <div class="text-slate-500">end date</div><div>{{ data.get('end_date','') }}</div>
+      <div class="text-slate-500">days</div><div>{{ data.get('days','') }}</div>
+    </div>
+
+    <form id="q-form" method="post" action="{{ url_for('main.generate') }}" class="space-y-6">
+      <!-- budget per day -->
+      <div>
+        <label class="block text-sm font-medium mb-2">budget per day</label>
+        <div class="grid grid-cols-5 gap-2 text-sm">
+          <label class="border rounded-lg px-2 py-1 flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="budget_tier" value="$" required>
+            <span>$ shoestring</span>
+          </label>
+          <label class="border rounded-lg px-2 py-1 flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="budget_tier" value="$$">
+            <span>$$ budget</span>
+          </label>
+          <label class="border rounded-lg px-2 py-1 flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="budget_tier" value="$$$">
+            <span>$$$ comfortable</span>
+          </label>
+          <label class="border rounded-lg px-2 py-1 flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="budget_tier" value="$$$$">
+            <span>$$$$ splurge</span>
+          </label>
+          <label class="border rounded-lg px-2 py-1 flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="budget_tier" value="$$$$$">
+            <span>$$$$$ luxury</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- interests (generic vacation themes) -->
+      <div>
+        <label class="block text-sm font-medium mb-2">interests</label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+          {% for tag in [
+            'nature','food','history & culture','nightlife','shopping',
+            'outdoors/adventure','museums','beaches','family-friendly',
+            'photography','iconic sights','hidden gems'
+          ] %}
+          <label class="border rounded-lg px-2 py-1 flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="interests" value="{{ tag }}">
+            <span>{{ tag }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- pace (optional) -->
+      <div>
+        <label class="block text-sm font-medium mb-2">travel pace</label>
+        <div class="grid grid-cols-3 gap-2 text-sm">
+          <label class="border rounded-lg px-2 py-1 flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="pace" value="chill">
+            <span>chill</span>
+          </label>
+          <label class="border rounded-lg px-2 py-1 flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="pace" value="balanced" checked>
+            <span>balanced</span>
+          </label>
+          <label class="border rounded-lg px-2 py-1 flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="pace" value="packed">
+            <span>packed</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- notes / must-see / must avoid -->
+      <div class="grid grid-cols-1 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">must see</label>
+          <textarea name="must_see" class="search-bar-outline w-full h-20" placeholder="spots or experiences you really want"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">must avoid</label>
+          <textarea name="must_avoid" class="search-bar-outline w-full h-20" placeholder="things to skip or sensitivities"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">other notes</label>
+          <textarea name="notes" class="search-bar-outline w-full h-20" placeholder="dietary needs, mobility, vibe, etc."></textarea>
+        </div>
+      </div>
+
+      <!-- hidden payload; we build it on submit -->
+      <input type="hidden" name="payload" id="payload">
+
+      <div class="flex items-center justify-between">
+        <a href="{{ url_for('main.home') }}" class="text-xs text-slate-600 underline">back</a>
+        <button type="submit" class="px-3 py-1 rounded-lg border text-sm hover:bg-emerald-50">continue</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // base trip bits coming in from the calendar redirect
+  const basePayload = {
+    country: "{{ (data.get('country') or '')|e }}",
+    country_code: "{{ (data.get('country_code') or '')|e }}",
+    city: "{{ (data.get('city') or '')|e }}",
+    destination: "{{ (data.get('destination') or '')|e }}",
+    start_date: "{{ (data.get('start_date') or '')|e }}",
+    end_date: "{{ (data.get('end_date') or '')|e }}",
+    days: "{{ (data.get('days') or '')|e }}"
+  };
+
+  document.getElementById('q-form').addEventListener('submit', (e) => {
+    // gather answers
+    const fd = new FormData(e.target);
+    const interests = [];
+    for (const el of e.target.querySelectorAll('input[name="interests"]:checked')) interests.push(el.value);
+
+    const merged = {
+      ...basePayload,
+      budget_tier: fd.get('budget_tier') || '',
+      pace: fd.get('pace') || 'balanced',
+      interests,
+      must_see: (fd.get('must_see') || '').trim(),
+      must_avoid: (fd.get('must_avoid') || '').trim(),
+      notes: (fd.get('notes') || '').trim()
+    };
+
+    document.getElementById('payload').value = JSON.stringify(merged);
+  });
+</script>
+{% endblock %}

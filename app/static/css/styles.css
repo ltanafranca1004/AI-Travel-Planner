@@ -1,8 +1,10 @@
 /* Turtle Trips — custom styles (keep minimal; Tailwind handles most UI) */
 /*https://colorhunt.co/palette/f6f5f2f0ebe3f3d0d7ffefef*/
 
+
 body {
   background-color: #F3D0D7 !important; /* Black background */
+  
 }
 .fade-in {
     animation: fade-in-scale 500ms ease-in-out;

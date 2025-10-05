@@ -1,138 +1,141 @@
-// Turtle Trips: inline date-range picker (Wanderlog-style)
+// turtle trips: inline date-range picker (wanderlog-style)
 (() => {
-    const grid = document.getElementById("drp-grid");
-    const monthLabel = document.getElementById("drp-monthLabel");
-    const prevBtn = document.getElementById("drp-prev");
-    const nextBtn = document.getElementById("drp-next");
-    const startEl = document.getElementById("drp-start");
-    const endEl = document.getElementById("drp-end");
-    const clearBtn = document.getElementById("drp-clear");
+    const grid      = document.getElementById("drp-grid");
+    const monthLabel= document.getElementById("drp-monthLabel");
+    const prevBtn   = document.getElementById("drp-prev");
+    const nextBtn   = document.getElementById("drp-next");
+    const startEl   = document.getElementById("drp-start");
+    const endEl     = document.getElementById("drp-end");
+    const clearBtn  = document.getElementById("drp-clear");
+    const doneBtn   = document.getElementById("drp-done");
+    const stepDates = document.getElementById("step-dates");
+    if (!grid) return;
   
-    if (!grid) return; // not on this page
+    // --- always reset saved dates on page load ---
+    ["tt.start_date","tt.end_date","tt.days"].forEach(k => localStorage.removeItem(k));
   
     // --- helpers ---
     const pad = (n) => String(n).padStart(2, "0");
-    const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`; // m = 0..11
-    const toDateParts = (s) => {
-      const [Y, M, D] = (s || "").split("-").map(Number);
-      if (!Y || !M || !D) return null;
-      return { y: Y, m: M - 1, d: D };
-    };
-    const toDate = (s) => {
-      const p = toDateParts(s);
-      return p ? new Date(p.y, p.m, p.d) : null;
-    };
-    const fmtHuman = (s) =>
-      s ? new Date(s + "T00:00:00").toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) : "";
+    const iso = (y,m,d) => `${y}-${pad(m+1)}-${pad(d)}`;
+    const parts = (s)=>{ const [Y,M,D]=(s||"").split("-").map(Number); return (Y&&M&&D)?{y:Y,m:M-1,d:D}:null; };
+    const toDate=(s)=>{ const p=parts(s); return p?new Date(p.y,p.m,p.d):null; };
+    const fmtHuman=(s)=> s ? new Date(s+"T00:00:00").toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"}).toLowerCase() : "";
+    const diffDaysInclusive=(aISO,bISO)=> !aISO||!bISO ? 0 : Math.round((toDate(bISO)-toDate(aISO))/86400000)+1;
   
-    const diffDaysInclusive = (aISO, bISO) => {
-      if (!aISO || !bISO) return 0;
-      const a = toDate(aISO), b = toDate(bISO);
-      const ms = (b - a);
-      return Math.round(ms / 86400000) + 1;
-    };
-  
-    // --- state ---
+    // --- state (start fresh every time) ---
     let view = new Date(); view.setDate(1);
-    let start = localStorage.getItem("tt.start_date") || null;
-    let end   = localStorage.getItem("tt.end_date") || null;
+    let start = null;
+    let end   = null;
   
-    // --- core ---
-    function inRange(dayISO) {
-      if (!start || !end) return false;
-      return (dayISO >= start && dayISO <= end);
-    }
-    function isSame(aISO, bISO) { return aISO && bISO && aISO === bISO; }
+    const inRange = (d)=> !!(start && end && d>=start && d<=end);
+    const isSame  = (a,b)=> a && b && a===b;
+    const setDoneEnabled = ()=> { doneBtn.disabled = !(start && end); };
   
-    function render() {
-      const y = view.getFullYear();
-      const m = view.getMonth();
-      monthLabel.textContent = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(view);
+    function render(){
+      const y = view.getFullYear(), m = view.getMonth();
+      monthLabel.textContent = new Intl.DateTimeFormat(undefined,{month:"long",year:"numeric"}).format(view).toLowerCase();
   
-      const firstDow = new Date(y, m, 1).getDay();
-      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const firstDow = new Date(y,m,1).getDay();
+      const daysInMonth = new Date(y,m+1,0).getDate();
   
       grid.innerHTML = "";
   
-      // leading blanks
-      for (let i = 0; i < firstDow; i++) {
-        const blank = document.createElement("div");
-        blank.className = "h-9";
+      for (let i=0;i<firstDow;i++) {
+        const blank=document.createElement("div");
+        blank.className="h-9";
         grid.appendChild(blank);
       }
   
-      // days
-      for (let d = 1; d <= daysInMonth; d++) {
-        const cell = document.createElement("button");
-        const dayISO = iso(y, m, d);
-        cell.type = "button";
-        cell.dataset.date = dayISO;
+      for (let d=1; d<=daysInMonth; d++){
+        const btn = document.createElement("button");
+        const dayISO = iso(y,m,d);
+        btn.type="button";
+        btn.dataset.date=dayISO;
+        btn.className="h-9 rounded-lg text-sm hover:bg-emerald-50 cursor-pointer select-none";
   
-        // base style
-        cell.className = "h-9 rounded-lg text-sm hover:bg-emerald-50 cursor-pointer select-none";
+        if (isSame(dayISO,start) || isSame(dayISO,end)) btn.className += " bg-emerald-600 text-white font-semibold";
+        else if (inRange(dayISO)) btn.className += " bg-emerald-100";
   
-        // styles for range
-        if (isSame(dayISO, start) || isSame(dayISO, end)) {
-          cell.className += " bg-emerald-600 text-white font-semibold";
-        } else if (inRange(dayISO)) {
-          cell.className += " bg-emerald-100";
-        }
+        const today=new Date();
+        if (y===today.getFullYear() && m===today.getMonth() && d===today.getDate()) btn.className += " ring-1 ring-emerald-400";
   
-        // today ring
-        const today = new Date();
-        if (y === today.getFullYear() && m === today.getMonth() && d === today.getDate()) {
-          cell.className += " ring-1 ring-emerald-400";
-        }
-  
-        cell.textContent = String(d);
-        cell.addEventListener("click", () => onPick(dayISO));
-        grid.appendChild(cell);
+        btn.textContent=String(d);
+        btn.addEventListener("click",()=>onPick(dayISO));
+        grid.appendChild(btn);
       }
   
-      // update inputs
       startEl.value = fmtHuman(start) || "";
       endEl.value   = fmtHuman(end)   || "";
   
-      // store days count when complete
       if (start && end) {
-        const days = diffDaysInclusive(start, end);
+        const days = diffDaysInclusive(start,end);
         localStorage.setItem("tt.days", String(days));
       }
+      setDoneEnabled();
     }
   
-    function onPick(dayISO) {
-      // no start yet, or already have a range → start over
-      if (!start || (start && end)) {
-        start = dayISO;
-        end = null;
-      } else {
-        // picking end; normalize order if user clicked earlier date
-        if (dayISO < start) {
-          end = start;
-          start = dayISO;
-        } else {
-          end = dayISO;
-        }
-      }
+    function onPick(dayISO){
+      if (!start || (start && end)) { start=dayISO; end=null; }
+      else { end = (dayISO < start) ? ( [start, start=dayISO][0] , start ) : dayISO; }
+      // keep local copy for days count + json preview later
       localStorage.setItem("tt.start_date", start || "");
       localStorage.setItem("tt.end_date",   end   || "");
       render();
     }
   
-    function clearAll() {
-      start = null; end = null;
-      localStorage.removeItem("tt.start_date");
-      localStorage.removeItem("tt.end_date");
-      localStorage.removeItem("tt.days");
+    function clearAll(){
+      start=null; end=null;
+      ["tt.start_date","tt.end_date","tt.days"].forEach(k => localStorage.removeItem(k));
       render();
     }
   
-    // navigation
-    prevBtn.addEventListener("click", () => { view.setMonth(view.getMonth() - 1); render(); });
-    nextBtn.addEventListener("click", () => { view.setMonth(view.getMonth() + 1); render(); });
-    clearBtn.addEventListener("click", clearAll);
+    // finish → POST payload to /review (now a questionnaire page)
+    function finishIfReady(){
+      if (!(start && end)) return;
   
-    // initial
+      const days = diffDaysInclusive(start, end);
+      const payload = {
+        country:       localStorage.getItem("tt.country_name") || "",
+        country_code:  localStorage.getItem("tt.country_code") || "",
+        city:          localStorage.getItem("tt.city") || "",
+        destination:   localStorage.getItem("tt.destination") || localStorage.getItem("tt.city") || "",
+        start_date:    start,
+        end_date:      end,
+        days:          String(days)
+      };
+  
+      // optional: keep a copy for the client
+      localStorage.setItem("tt.payload", JSON.stringify(payload));
+  
+      // notify any listeners
+      document.dispatchEvent(new CustomEvent("tt:dates-confirmed", { detail: { ...payload } }));
+  
+      // POST to questionnaire page
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "/review";  // keep this path; page now shows questions
+  
+      for (const [k,v] of Object.entries(payload)) {
+        const input = document.createElement("input");
+        input.type = "hidden"; input.name = k; input.value = v;
+        form.appendChild(input);
+      }
+  
+      const jsonInput = document.createElement("input");
+      jsonInput.type = "hidden"; jsonInput.name = "trip_json"; jsonInput.value = JSON.stringify(payload);
+      form.appendChild(jsonInput);
+  
+      document.body.appendChild(form);
+      form.submit();
+    }
+  
+    // controls
+    prevBtn.addEventListener("click",()=>{ view.setMonth(view.getMonth()-1); render(); });
+    nextBtn.addEventListener("click",()=>{ view.setMonth(view.getMonth()+1); render(); });
+    clearBtn.addEventListener("click", clearAll);
+    doneBtn.addEventListener("click", finishIfReady);
+    document.addEventListener("keydown",(e)=>{ if(e.key==="Enter" && !stepDates.classList.contains("hidden")) finishIfReady(); });
+  
     render();
   })();
   

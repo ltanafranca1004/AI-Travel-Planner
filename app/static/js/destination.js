@@ -312,3 +312,22 @@ daysInput.addEventListener("keydown", (e) => {
     }
   }
 });
+
+// when dates are confirmed, hide the calendar (we'll show the next step later)
+// done button from the calendar fires this:
+document.addEventListener("tt:dates-confirmed", (e) => {
+    const { start, end, days } = e.detail || {};
+  
+    if (start) localStorage.setItem("tt.start_date", start);
+    if (end)   localStorage.setItem("tt.end_date", end);
+    if (Number.isFinite(days)) localStorage.setItem("tt.days", String(days));
+  
+    // close the calendar
+    hide(stepDates);
+  
+    // (optional) show your next step here
+    // show(document.getElementById("step-q"));
+    // document.getElementById("pace")?.focus();
+  });
+  
+
