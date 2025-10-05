@@ -27,6 +27,17 @@ body {
   font-weight: 700; /* bold */
 }
 
+#step-country .search-bar-outline,
+#step-city .search-bar-outline,
+#step-dates .search-bar-outline {
+  background-color: white;
+}
+
+#step-country .search-bar-outline::placeholder,
+#step-city .search-bar-outline::placeholder,
+#step-dates .search-bar-outline::placeholder {
+  color: #94a3b8;
+}
 
 .search-bar-outline {
   background-color: transparent;

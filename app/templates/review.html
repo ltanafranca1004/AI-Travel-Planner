@@ -20,18 +20,18 @@
   {# Trip Summary Card #}
   <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5 mb-8">
     <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">your trip</h2>
-    <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-      <div class="flex justify-between">
-        <span class="text-slate-500">destination</span>
-        <span class="font-medium">{{ data.get('city','') }}, {{ data.get('country','') }}</span>
+    <div class="space-y-3 text-sm">
+      <div class="flex justify-between items-center">
+        <span class="text-slate-600">destination</span>
+        <span class="font-semibold text-base">{{ data.get('city','') }}, {{ data.get('country','') }}</span>
       </div>
-      <div class="flex justify-between">
-        <span class="text-slate-500">duration</span>
-        <span class="font-medium">{{ data.get('days','') }} days</span>
+      <div class="flex justify-between items-center">
+        <span class="text-slate-600">duration</span>
+        <span class="font-semibold text-base">{{ data.get('days','') }} days</span>
       </div>
-      <div class="flex justify-between col-span-2">
-        <span class="text-slate-500">dates</span>
-        <span class="font-medium">{{ data.get('start_date','') }} → {{ data.get('end_date','') }}</span>
+      <div class="flex justify-between items-center">
+        <span class="text-slate-600">dates</span>
+        <span class="font-semibold text-base">{{ data.get('start_date','') }} → {{ data.get('end_date','') }}</span>
       </div>
     </div>
   </div>
@@ -159,17 +159,24 @@
 
     <!-- Actions -->
     <div class="flex items-center justify-between pt-4">
-      <a href="{{ url_for('main.home') }}" class="text-sm text-slate-600 hover:text-slate-900 underline transition-colors">← back</a>
+      <a href="{{ url_for('main.home') }}" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-full text-sm font-medium hover:bg-slate-300 transition-colors">
+        ← back
+      </a>
       <button type="submit" class="px-6 py-3 bg-black text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-all transform hover:scale-105">
         generate itinerary →
       </button>
     </div>
   </form>
 </section>
+
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+  // Update footer year
+  document.getElementById('footer-year').textContent = new Date().getFullYear();
+
   // base trip bits coming in from the calendar redirect
   const basePayload = {
     country: "{{ (data.get('country') or '')|e }}",
