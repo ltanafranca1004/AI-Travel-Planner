@@ -71,6 +71,13 @@
 {% block scripts %}
 <script>
 (function () {
+  // Preconnect helps first-image time
+  ['https://maps.googleapis.com','https://maps.gstatic.com','https://lh3.googleusercontent.com','https://upload.wikimedia.org']
+    .forEach(h => { const l=document.createElement('link'); l.rel='preconnect'; l.href=h; l.crossOrigin=''; document.head.appendChild(l); });
+
+  // Ensure a container element exists for PlacesService (attached to DOM = more reliable)
+  const helper = document.createElement('div'); helper.id='places-helper'; helper.style.display='none'; document.body.appendChild(helper);
+
   const grid      = document.getElementById('plans-grid');
   const mapCol    = document.getElementById('map-col');
   const backBtn   = document.getElementById('back-btn');
@@ -122,27 +129,81 @@
       document.head.appendChild(s);
     });
   }
-  // warm up Maps/Places ASAP (helps image latency)
   loadMapsOnce();
 
   // ---- session cache helpers ----
-  const mem = new Map();
   const cacheGet = k => { const s = sessionStorage.getItem(k); return s ? JSON.parse(s) : null; }
   const cacheSet = (k,v) => { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch{} }
 
+  // --- small helper: timeout wrapper ---
+  const withTimeout = (p, ms) => Promise.race([
+    p, new Promise((_,rej)=> setTimeout(()=> rej(new Error('timeout')), ms))
+  ]);
+
   // =====================================================================
-  // Google Places Photos (with lazy loader + small concurrency)
+  // City center (bias) — one geocode per page
+  // =====================================================================
+  let CITY_CENTER = null;
+  async function getCityCenter(){
+    const key = `geo_city:${CITY},${COUNTRY}`.toLowerCase();
+    const cached = cacheGet(key);
+    if (cached) { CITY_CENTER = cached; return cached; }
+    await loadMapsOnce();
+    if (!(window.google && google.maps)) return null;
+    const geocoder = new google.maps.Geocoder();
+    try {
+      const { results } = await geocoder.geocode({ address: [CITY, COUNTRY].filter(Boolean).join(', ') });
+      if (results && results[0]) {
+        const p = results[0].geometry.location;
+        CITY_CENTER = { lat: p.lat(), lng: p.lng() };
+        cacheSet(key, CITY_CENTER);
+        return CITY_CENTER;
+      }
+    } catch {}
+    return null;
+  }
+  getCityCenter(); // fire & cache early
+
+  // =====================================================================
+  // Fallback: Wikipedia image (fast and free)
+  // =====================================================================
+  async function fetchWikiImage(query) {
+    try {
+      const sURL = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
+      const sJson = await withTimeout(fetch(sURL).then(r=>r.json()), 1500).catch(()=>null);
+      const title = sJson?.query?.search?.[0]?.title;
+      if (!title) return null;
+      const sumURL = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+      const pJson = await withTimeout(fetch(sumURL).then(r=>r.json()), 1500).catch(()=>null);
+      const url = pJson?.originalimage?.source || pJson?.thumbnail?.source || null;
+      return url ? { url, name: pJson?.title || title, attributions: [] } : null;
+    } catch { return null; }
+  }
+
+  // =====================================================================
+  // Google Places Photos (biased + timeouts) with Wikipedia fallback
   // =====================================================================
   let __placesService = null;
   function getPlacesService() {
     if (__placesService) return __placesService;
-    __placesService = new google.maps.places.PlacesService(document.createElement('div'));
+    __placesService = new google.maps.places.PlacesService(helper);
     return __placesService;
   }
-  function placesTextSearch(query) {
+  function placesTextSearch(query, center) {
+    const req = center ? { query, location: center, radius: 30000 } : { query };
     return new Promise((resolve) => {
-      getPlacesService().textSearch({ query }, (results, status) => {
+      getPlacesService().textSearch(req, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(results)) resolve(results);
+        else resolve([]);
+      });
+    });
+  }
+  function placesFindPlace(query, center){
+    const req = center ? { query, fields:['name','photos','place_id'], locationBias: {radius: 30000, center } }
+                       : { query, fields:['name','photos','place_id'] };
+    return new Promise((resolve) => {
+      getPlacesService().findPlaceFromQuery(req, (res, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && res?.candidates?.length) resolve(res.candidates);
         else resolve([]);
       });
     });
@@ -155,34 +216,63 @@
       });
     });
   }
+
   async function fetchPlacePhotoForQuery(query) {
     await loadMapsOnce();
     const ck = `gphoto:${query.toLowerCase()}`;
     const cached = cacheGet(ck);
     if (cached !== null) return cached;
 
-    const results = await placesTextSearch(query);
-    for (const r of results) {
-      if (Array.isArray(r.photos) && r.photos.length) {
-        const url = r.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 }); // smaller = faster
-        const out = { url, name: r.name || '', attributions: r.photos[0].html_attributions || [] };
-        cacheSet(ck, out); return out;
+    const center = CITY_CENTER || await getCityCenter();
+
+    // 1) Biased Text Search (fast) with 1.8s timeout
+    try {
+      const results = await withTimeout(placesTextSearch(query, center), 1800);
+      for (const r of results) {
+        if (r.photos?.length) {
+          const url = r.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 });
+          const out = { url, name: r.name || '', attributions: r.photos[0].html_attributions || [] };
+          cacheSet(ck, out); return out;
+        }
       }
-    }
-    if (results[0]?.place_id) {
-      const det = await placesGetDetails(results[0].place_id);
-      if (det?.photos?.length) {
-        const url = det.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 });
-        const out = { url, name: det.name || '', attributions: det.photos[0].html_attributions || [] };
-        cacheSet(ck, out); return out;
+      if (results[0]?.place_id) {
+        const det = await withTimeout(placesGetDetails(results[0].place_id), 1200).catch(()=>null);
+        if (det?.photos?.length) {
+          const url = det.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 });
+          const out = { url, name: det.name || '', attributions: det.photos[0].html_attributions || [] };
+          cacheSet(ck, out); return out;
+        }
       }
-    }
-    cacheSet(ck, null);
-    return null;
+    } catch {}
+
+    // 2) Biased FindPlace (backup) with 1.8s timeout
+    try {
+      const cands = await withTimeout(placesFindPlace(query, center), 1800);
+      for (const c of cands) {
+        if (c.photos?.length) {
+          const url = c.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 });
+          const out = { url, name: c.name || '', attributions: c.photos[0].html_attributions || [] };
+          cacheSet(ck, out); return out;
+        }
+      }
+      if (cands[0]?.place_id) {
+        const det = await withTimeout(placesGetDetails(cands[0].place_id), 1200).catch(()=>null);
+        if (det?.photos?.length) {
+          const url = det.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 });
+          const out = { url, name: det.name || '', attributions: det.photos[0].html_attributions || [] };
+          cacheSet(ck, out); return out;
+        }
+      }
+    } catch {}
+
+    // 3) Wikipedia fallback (fast, no key)
+    const wiki = await fetchWikiImage(query);
+    cacheSet(ck, wiki || null);
+    return wiki;
   }
 
-  // photo lazy queue (loads only when visible; max N at a time)
-  const PHOTO_CONCURRENCY = 4;
+  // photo lazy queue (loads only when visible; small max concurrency)
+  const PHOTO_CONCURRENCY = 6;
   let photoInFlight = 0;
   const photoQueue = [];
   function queuePhoto(job){ photoQueue.push(job); pumpPhotos(); }
@@ -192,6 +282,7 @@
       photoInFlight++;
       findImageForSpot(spot).then(hit => {
         const img = wrapper.querySelector('img');
+        wrapper.classList.remove('skel');
         if (hit?.url) {
           img.src = hit.url;
           img.classList.remove('hidden');
@@ -235,7 +326,7 @@
       queuePhoto({ wrapper: wrap, spot });
       io.unobserve(wrap);
     });
-  }, { root:null, rootMargin:'400px 0px', threshold:0 });
+  }, { root:null, rootMargin:'800px 0px', threshold:0 });
 
   function activityItem(act){
     const li = el('li','bg-white rounded-lg border overflow-hidden fade-in');
@@ -422,14 +513,14 @@
 
     // geocode helper (with cache)
     async function geocodeQuery(q){
-      const ck = `geo:${q.toLowerCase()}`; const cached = sessionStorage.getItem(ck);
-      if (cached) return JSON.parse(cached);
+      const ck = `geo:${q.toLowerCase()}`; const cached = cacheGet(ck);
+      if (cached) return cached;
       try {
         const { results } = await geocoder.geocode({ address: q });
         if (results && results[0]) {
           const p = results[0].geometry.location;
           const loc = { lat: p.lat(), lng: p.lng() };
-          sessionStorage.setItem(ck, JSON.stringify(loc));
+          cacheSet(ck, loc);
           return loc;
         }
       } catch {}
@@ -476,14 +567,12 @@
       });
       markers.push(marker);
     }
-
     function fitBoundsForCoords(coords){
       if (!coords.length) return;
       const b = new google.maps.LatLngBounds();
       coords.forEach(c => b.extend(c));
       map.fitBounds(b); if (map.getZoom() > 15) map.setZoom(15);
     }
-
     function drawMarkersOnly(ordered){
       let n = 1;
       const coords = [];
@@ -519,13 +608,10 @@
           });
           renderers.push(renderer);
 
-          // label strictly 1..N in the same order you show them
           let labelNo = 1;
           for (let i = 0; i < ordered.length; i++) {
             addNumberedMarker(ordered[i]._loc, labelNo++, ordered[i].spot);
           }
-
-          // fit to the whole set of coords
           fitBoundsForCoords(ordered.map(a => a._loc));
         }
       );
