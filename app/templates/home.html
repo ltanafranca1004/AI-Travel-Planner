@@ -2,7 +2,7 @@
 {% block content %}
 <section class="pt-8 sm:pt-12">
   <!-- Logo -->
-<div class="w-full flex justify-center mb-6">
+<div class="w-full flex justify-center mb-6 scale-fade-in">
   <img
     src="{{ url_for('static', filename='img/turt1-removebg-preview.svg') }}"
     alt="Turtle Trips logo"
@@ -11,12 +11,11 @@
 </div>
 
   <!-- Title -->
- <h1 class="text-3xl sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif">
+<h1 class="text-3xl sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif fade-in">
   turtle trips.
 </h1>
-
   <!-- Step 1: Country -->
-  <div id="step-country" class="mt-8 max-w-md mx-auto relative">
+<div id="step-country" class="mt-8 max-w-md mx-auto relative fade-in">
     <input
       id="country"
       type="text"
@@ -30,7 +29,7 @@
   </div>
 
   <!-- step 2: city -->
-  <div id="step-city" class="mt-6 max-w-md mx-auto relative hidden">
+<div id="step-city" class="mt-6 max-w-md mx-auto relative hidden fade-in">
     <input
       id="city"
       type="text"
@@ -44,7 +43,7 @@
   </div>
 
   <!-- step 3: dates (range picker) -->
-  <div id="step-dates" class="mt-6 max-w-xl mx-auto hidden">
+<div id="step-dates" class="mt-6 max-w-xl mx-auto hidden fade-in">
     <div class="flex flex-col items-center gap-3">
       <!-- selected range display -->
       <div class="flex items-center gap-2">

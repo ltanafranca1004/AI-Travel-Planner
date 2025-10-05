@@ -209,3 +209,60 @@ form > div:nth-child(1) { animation-delay: 50ms; }
 form > div:nth-child(2) { animation-delay: 100ms; }
 form > div:nth-child(3) { animation-delay: 150ms; }
 form > div:nth-child(4) { animation-delay: 200ms; }
+
+/* Page Entrance Animations */
+body {
+  background-color: #F3D0D7 !important;
+  animation: page-fade-in 0.5s ease-out;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Scale and fade (for logos, headers) */
+.scale-fade-in {
+  animation: scale-fade 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scale-fade {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Simple fade in */
+.fade-in {
+  animation: fade-in-only 0.6s ease-out;
+}
+
+@keyframes fade-in-only {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Existing fade-in-scale animation */
+@keyframes fade-in-scale {
+    from { 
+        opacity: 0; 
+        transform: translateY(4px) scale(0.95); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
