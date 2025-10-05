@@ -37,6 +37,7 @@ body {
   border-color: #526D82;
 }
 
+/* Autocomplete panel */
 .ac-panel {
   position: absolute;
   top: 100%;
