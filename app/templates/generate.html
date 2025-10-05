@@ -5,43 +5,10 @@
     your trip.
   </h1>
 
-  <div class="bg-white/80 rounded-xl p-4 shadow-sm max-w-3xl mx-auto space-y-6">
-    <!-- headline summary -->
-    <div class="grid sm:grid-cols-2 gap-y-2 text-sm">
-      <div class="text-slate-500">country</div><div>{{ payload.country }}</div>
-      <div class="text-slate-500">city</div><div>{{ payload.city }}</div>
-      <div class="text-slate-500">start date</div><div>{{ payload.start_date }}</div>
-      <div class="text-slate-500">end date</div><div>{{ payload.end_date }}</div>
-      <div class="text-slate-500">days</div><div>{{ payload.days }}</div>
-      <div class="text-slate-500">budget per day</div><div>{{ payload.budget_tier }}</div>
-      <div class="text-slate-500">pace</div><div>{{ payload.pace }}</div>
-      <div class="text-slate-500">interests</div>
-      <div>{{ (payload.interests or [])|join(', ') }}</div>
-    </div>
-
-    <div class="grid sm:grid-cols-2 gap-4 text-sm">
-      <div>
-        <div class="text-slate-500 mb-1">must see</div>
-        <div class="whitespace-pre-wrap">{{ payload.must_see }}</div>
-      </div>
-      <div>
-        <div class="text-slate-500 mb-1">must avoid</div>
-        <div class="whitespace-pre-wrap">{{ payload.must_avoid }}</div>
-      </div>
-      <div class="sm:col-span-2">
-        <div class="text-slate-500 mb-1">other notes</div>
-        <div class="whitespace-pre-wrap">{{ payload.notes }}</div>
-      </div>
-    </div>
-
-    <!-- full json (visible here) -->
-    <details class="mt-2">
-      <summary class="cursor-pointer text-sm underline">view trip json</summary>
-      <textarea class="search-bar-outline w-full h-56 mt-2" readonly>{{ payload | tojson(indent=2) }}</textarea>
-    </details>
+    {{ payload }}
 
     <div class="text-center">
-      <a href="{{ url_for('main.home') }}" class="text-xs text-slate-600 underline">back</a>
+      <a href="{{ url_for('main.home') }}" class="text-xs text-slate-600 underline">return home</a>
     </div>
   </div>
 </section>
