@@ -189,6 +189,21 @@
   </form>
 </section>
 
+ <div id="turtle-mascot-wrapper" 
+     class="fixed bottom-12 z-50 flex flex-col items-center transition-all duration-300"
+     style="right: 3.9rem; left: auto;"> <!-- move to bottom-right -->
+  <div id="turtle-speech" class="mb-2 max-w-xs px-4 py-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm text-sm font-medium font-montserrat text-slate-800 text-center">
+    <!-- text will be set by JS -->
+  </div>
+  <img 
+    id="turtle-mascot" 
+    src="{{ url_for('static', filename='img/ponder.png') }}" 
+    alt="Turtle Mascot" 
+    class="h-44 w-auto pointer-events-none"
+  />
+</div>
+
+
 <div id="loading-overlay" class="fixed inset-0 bg-white/90 z-50 flex flex-col items-center justify-center hidden">
   <!-- Wait image -->
   <img 
@@ -267,6 +282,37 @@ document.getElementById('q-form').addEventListener('submit', (e) => {
     };
 
     document.getElementById('payload').value = JSON.stringify(merged);
+  });
+
+   document.addEventListener('DOMContentLoaded', () => {
+    const mascotWrapper = document.getElementById('turtle-mascot-wrapper');
+    const speechEl = document.getElementById('turtle-speech');
+    const footer = document.querySelector('footer');
+
+ const phrases = [
+  "shell we decide this one?", 
+  "turtley wise choice!", 
+  "choose like a champ!", 
+  "every pick counts, fin-tastic!", 
+  "slow and steady wins the day!", 
+  "this choice is turtley awesome!", 
+  "let`s make waves with that decision!", 
+  "you`re on the right shell!", 
+  "go on, pick it!", 
+  "adventure awaits your choice!"
+];
+
+
+
+    speechEl.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+
+    window.addEventListener('scroll', () => {
+      if (!mascotWrapper || !footer) return;
+      const footerRect = footer.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const overlap = windowHeight - footerRect.top;
+      mascotWrapper.style.bottom = overlap > 0 ? `${overlap + 24}px` : '3rem';
+    });
   });
 </script>
 {% endblock %}
