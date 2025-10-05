@@ -4,7 +4,7 @@
   <div class="max-w-7xl mx-auto px-6 py-2 flex items-center gap-2">
     <a href="{{ url_for('main.home') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
       <img src="{{ url_for('static', filename='img/turt-logo.png') }}" alt="Turtle Trips logo" class="h-12 w-auto" />
-      <span class="text-xl font-extrabold title-lower-serif tracking-tight">turtle trips.</span>
+      <span class="text-xl font-extrabold title-lower-serif tracking-tight">turtle trips ai.</span>
     </a>
   </div>
   <div class="navbar-underline h-[1px] w-full bg-black/20"></div>
@@ -337,6 +337,20 @@
     });
   }, { root:null, rootMargin:'800px 0px', threshold:0 });
 
+  /* --------- PHASE NORMALIZATION (remove numeric times) --------- */
+  const TIME_ORDER = { morning:1, 'late morning':2, lunch:3, afternoon:4, evening:5, night:6 };
+  function normalizePhase(t = '') {
+    const s = t.toLowerCase();
+    if (s.includes('late morning')) return 'late morning';
+    if (s.includes('morning'))       return 'morning';
+    if (s.includes('lunch'))         return 'lunch';
+    if (s.includes('afternoon'))     return 'afternoon';
+    if (s.includes('evening'))       return 'evening';
+    if (s.includes('night'))         return 'night';
+    return ''; // unknown
+  }
+  const timeRank = (t) => TIME_ORDER[normalizePhase(t)] ?? 99;
+
   function activityItem(act){
     const li = el('li','bg-white rounded-lg border overflow-hidden fade-in');
     const imgWrap = el('div','relative w-full h-40 bg-slate-100 skel');
@@ -347,8 +361,25 @@
 
     if (act.time_of_day) {
       const badge = el('div','absolute top-2 left-2 text-[10px] px-2 py-1 rounded-full bg-white/90 border');
-      badge.textContent = act.time_of_day; imgWrap.appendChild(badge);
+
+      // Prefer a clean phase, otherwise strip any clock fragments like "(9:00 AM)" or "10:30 pm"
+      let label = normalizePhase(act.time_of_day);
+      if (!label) {
+        label = (act.time_of_day || '')
+          .replace(/\([^)]*\)/g, '')                    // remove "(9:00 AM)"
+          .replace(/\b\d{1,2}:\d{2}\s*(am|pm)\b/ig, '') // remove "10:30 am"
+          .replace(/\s{2,}/g, ' ')
+          .trim()
+          .toLowerCase();
+        label = normalizePhase(label) || label;
+      }
+      // Title-case the label
+      label = (label || '').replace(/\b\w/g, c => c.toUpperCase());
+
+      badge.textContent = label || '';
+      imgWrap.appendChild(badge);
     }
+
     const body = el('div','p-3');
     body.appendChild(el('div','text-sm font-medium', act.spot || '(unspecified spot)'));
     if (act.description) body.appendChild(el('p','text-sm text-slate-600 mt-1', act.description));
@@ -384,7 +415,11 @@
       box.appendChild(top);
 
       const list = el('ul','grid gap-3');
-      (day.activities || []).forEach(a => list.appendChild(activityItem(a)));
+      // sort using normalized phases
+      (day.activities || [])
+        .slice()
+        .sort((a,b) => timeRank(a.time_of_day) - timeRank(b.time_of_day))
+        .forEach(a => list.appendChild(activityItem(a)));
       box.appendChild(list);
       card.appendChild(box);
     });
@@ -479,9 +514,6 @@
   // ===========================
   // Map with DAY ROUTES feature
   // ===========================
-  const TIME_ORDER = { morning:1, lunch:2, afternoon:3, evening:4, night:5 };
-  const timeRank = t => TIME_ORDER[(t || '').toLowerCase()] ?? 99;
-
   async function initMapForPlan(plan){
     await loadMapsOnce();
     const mapDiv = document.getElementById('map');
