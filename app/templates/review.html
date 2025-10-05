@@ -5,13 +5,10 @@
     trip questions.
   </h1>
 
-  {# base trip info (still shown so user sees what we collected) #}
   <div class="bg-white/80 rounded-xl p-4 shadow-sm max-w-xl mx-auto space-y-4">
     <div class="grid grid-cols-2 gap-y-2 text-sm">
       <div class="text-slate-500">country</div><div>{{ data.get('country','') }}</div>
-      <div class="text-slate-500">country code</div><div>{{ data.get('country_code','') }}</div>
       <div class="text-slate-500">city</div><div>{{ data.get('city','') }}</div>
-      <div class="text-slate-500">destination</div><div>{{ data.get('destination','') }}</div>
       <div class="text-slate-500">start date</div><div>{{ data.get('start_date','') }}</div>
       <div class="text-slate-500">end date</div><div>{{ data.get('end_date','') }}</div>
       <div class="text-slate-500">days</div><div>{{ data.get('days','') }}</div>
@@ -45,7 +42,7 @@
         </div>
       </div>
 
-      <!-- interests (generic vacation themes) -->
+      <!-- interests -->
       <div>
         <label class="block text-sm font-medium mb-2">interests</label>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
@@ -62,7 +59,7 @@
         </div>
       </div>
 
-      <!-- pace (optional) -->
+      <!-- travel pace -->
       <div>
         <label class="block text-sm font-medium mb-2">travel pace</label>
         <div class="grid grid-cols-3 gap-2 text-sm">
@@ -81,7 +78,7 @@
         </div>
       </div>
 
-      <!-- notes / must-see / must avoid -->
+      <!-- notes / must see / must avoid -->
       <div class="grid grid-cols-1 gap-4">
         <div>
           <label class="block text-sm font-medium mb-1">must see</label>
@@ -97,7 +94,6 @@
         </div>
       </div>
 
-      <!-- hidden payload; we build it on submit -->
       <input type="hidden" name="payload" id="payload">
 
       <div class="flex items-center justify-between">
@@ -111,19 +107,16 @@
 
 {% block scripts %}
 <script>
-  // base trip bits coming in from the calendar redirect
+  // base trip bits coming in from the calendar redirect (no country_code/destination)
   const basePayload = {
     country: "{{ (data.get('country') or '')|e }}",
-    country_code: "{{ (data.get('country_code') or '')|e }}",
     city: "{{ (data.get('city') or '')|e }}",
-    destination: "{{ (data.get('destination') or '')|e }}",
     start_date: "{{ (data.get('start_date') or '')|e }}",
     end_date: "{{ (data.get('end_date') or '')|e }}",
     days: "{{ (data.get('days') or '')|e }}"
   };
 
   document.getElementById('q-form').addEventListener('submit', (e) => {
-    // gather answers
     const fd = new FormData(e.target);
     const interests = [];
     for (const el of e.target.querySelectorAll('input[name="interests"]:checked')) interests.push(el.value);

@@ -95,14 +95,13 @@
   
       const days = diffDaysInclusive(start, end);
       const payload = {
-        country:       localStorage.getItem("tt.country_name") || "",
-        country_code:  localStorage.getItem("tt.country_code") || "",
-        city:          localStorage.getItem("tt.city") || "",
-        destination:   localStorage.getItem("tt.destination") || localStorage.getItem("tt.city") || "",
-        start_date:    start,
-        end_date:      end,
-        days:          String(days)
+        country:      localStorage.getItem("tt.country_name") || "",
+        city:         localStorage.getItem("tt.city") || "",
+        start_date:   start,
+        end_date:     end,
+        days:         String(days)
       };
+      
   
       // optional: keep a copy for the client
       localStorage.setItem("tt.payload", JSON.stringify(payload));
