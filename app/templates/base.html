@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ title or "turtle trips." }}</title>
+    <title>{{ title or "turtle trips ai" }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
@@ -16,11 +16,15 @@
     </main>
 
     <!-- Footer -->
-    <footer class="py-4 w-full" style="background-color: #FFEFEF;">
-      <div class="text-center text-sm text-slate-600">
-        <p>&copy; <span id="footer-year"></span> theawkwardturtles for stormhacks</p>
-      </div>
-    </footer>
+   <footer class="py-4 w-full" style="background-color: #FFEFEF;">
+  <div class="text-center text-sm text-slate-600 flex justify-center items-center gap-2">
+    <p>&copy; <span id="footer-year"></span> theawkwardturtles for stormhacks</p>
+    <a href="https://github.com/ltanafranca1004/AI-Travel-Planner" target="_blank" rel="noopener noreferrer" class="inline-flex items-center">
+      <img src="https://github.githubassets.com/favicons/favicon.svg" alt="GitHub" class="h-4 w-4"/>
+    </a>
+  </div>
+</footer>
+
 
     {% block scripts %}{% endblock %}
     
