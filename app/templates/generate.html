@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div id="navbar" class="fixed top-0 left-0 w-full z-50 bg-[#FFEFEF] backdrop-blur-sm shadow-sm">
   <div class="max-w-7xl mx-auto px-6 py-2 flex items-center gap-2">
     <a href="{{ url_for('main.home') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -16,9 +15,10 @@
 </div>
 
 <section class="pt-8 sm:pt-12">
-    <h2 class="text-3xl mb-12 sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif fade-in title-3d">
-   your trips!
+    <h2 class="text-3xl mb-2 sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif fade-in title-3d">
+   <span id="trip-title">your trips!</span>
 </h2>
+    <!-- Press Enter to Confirm message -->
 
   <!-- top action bar -->
 <div class="max-w-6xl mx-auto mb-4 flex items-center justify-between">
@@ -72,7 +72,6 @@
   const grid      = document.getElementById('plans-grid');
   const mapCol    = document.getElementById('map-col');
   const backBtn   = document.getElementById('back-btn');
-  const chooseTip = document.getElementById('choose-tip');
 
   const rawNode = document.getElementById('itinerary-json');
   const rawBlock= document.getElementById('raw-block');
@@ -80,6 +79,16 @@
 
   const CITY    = localStorage.getItem('tt.city') || '';
   const COUNTRY = localStorage.getItem('tt.country_name') || '';
+
+  // Update title with destination
+  const titleEl = document.getElementById('trip-title');
+  if (CITY) {
+    titleEl.textContent = `your trip around ${CITY.toLowerCase()}!`;
+  } else if (COUNTRY) {
+    titleEl.textContent = `your trip around ${COUNTRY.toLowerCase()}!`;
+  } else {
+    titleEl.textContent = 'your trips!';
+  }
 
   // ---- recover Gemini output ----
   let rawText = "";
@@ -246,8 +255,6 @@
     if (chosenIndex !== null) return;
     chosenIndex = idx;
 
-    chooseTip.classList.add('hidden');
-
     // fade out others
     const allCards = Array.from(grid.children);
     allCards.forEach(c=>{
@@ -283,7 +290,6 @@
     mapCol.classList.add('hidden');
     mapCol.classList.remove('md:block');
     backBtn.classList.add('hidden');
-    chooseTip.classList.remove('hidden');
 
     grid.innerHTML = '';
     grid.classList.remove('md:col-span-1','md:grid-cols-1');
