@@ -7,7 +7,7 @@ console.log("TT destination flow loaded (country → city-only, robust Overpass)
 /* ---------- DOM ---------- */
 const stepCountry = document.getElementById("step-country");
 const stepCity     = document.getElementById("step-city");
-const stepDays     = document.getElementById("step-days");
+const stepDates = document.getElementById("step-dates");
 
 const countryInput = document.getElementById("country");
 const cityInput    = document.getElementById("city");
@@ -140,8 +140,8 @@ function selectCity(name){
   localStorage.setItem("tt.city", name);
   localStorage.setItem("tt.destination", name); // display city only
   clearPanel(cityPanel);
-  show(stepDays);
-  setTimeout(() => daysInput.focus(), 0);
+  show(stepDates);
+  setTimeout(() => document.getElementById("drp-start").focus(), 0);  
 }
 
 /* ------- Overpass helpers: robust GET + mirror fallback ------- */

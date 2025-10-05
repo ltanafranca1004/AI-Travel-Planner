@@ -29,7 +29,7 @@
     <p class="mt-2 text-center text-xs text-slate-500">Press Enter to confirm</p>
   </div>
 
-  <!-- Step 2: City (appears after selecting a country) -->
+  <!-- Step 2: City -->
   <div id="step-city" class="mt-6 max-w-md mx-auto relative hidden">
     <input
       id="city"
@@ -43,22 +43,37 @@
     <p class="mt-2 text-center text-xs text-slate-500">Press Enter to confirm</p>
   </div>
 
-  <!-- Step 3: Days -->
-  <div id="step-days" class="mt-6 max-w-md mx-auto hidden">
-    <input
-      id="days"
-      type="number"
-      min="1"
-      max="60"
-      class="search-bar-outline w-full"
-      placeholder="How many days?"
-      inputmode="numeric"
-    />
-    <p class="mt-2 text-center text-xs text-slate-500">Press Enter to confirm</p>
+  <!-- Step 3: Dates (range picker) -->
+  <div id="step-dates" class="mt-6 max-w-xl mx-auto hidden">
+    <div class="flex flex-col items-center gap-3">
+      <!-- selected range display -->
+      <div class="flex items-center gap-2">
+        <input id="drp-start" class="search-bar-outline w-40 text-center" placeholder="Start date" readonly />
+        <span class="text-slate-400">→</span>
+        <input id="drp-end" class="search-bar-outline w-40 text-center" placeholder="End date" readonly />
+        <button id="drp-clear" type="button" class="text-xs text-slate-500 underline ml-2">Clear</button>
+      </div>
+
+      <!-- calendar -->
+      <div class="w-full bg-white/80 rounded-xl p-3 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <button id="drp-prev" type="button" class="px-3 py-1 rounded-lg border text-sm hover:bg-slate-50">‹</button>
+          <div id="drp-monthLabel" class="font-semibold"></div>
+          <button id="drp-next" type="button" class="px-3 py-1 rounded-lg border text-sm hover:bg-slate-50">›</button>
+        </div>
+        <div class="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 mb-1">
+          <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+        </div>
+        <div id="drp-grid" class="grid grid-cols-7 gap-1"></div>
+      </div>
+
+      <p class="text-xs text-slate-500">Click a start date, then an end date. Click again to reset.</p>
+    </div>
   </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
   <script defer src="{{ url_for('static', filename='js/destination.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/date-range.js') }}"></script>
 {% endblock %}
