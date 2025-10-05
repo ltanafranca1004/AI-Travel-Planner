@@ -6,40 +6,46 @@
       <img
         src="{{ url_for('static', filename='img/turt-logo.png') }}"
         alt="Turtle Trips logo"
-        class="h-12 w-auto"  
-        />
+        class="h-12 w-auto"
+      />
       <span class="text-xl font-extrabold title-lower-serif tracking-tight">turtle trips.</span>
     </a>
   </div>
   <div class="navbar-underline h-[1px] w-full bg-black/20"></div>
 </div>
 
+<!-- ✨ simple fade animation -->
+<style>
+.fade-in {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
 <section class="pt-8 sm:pt-12">
-    <h2 class="text-3xl mb-2 sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif fade-in title-3d">
-   <span id="trip-title">your trips!</span>
-</h2>
-    <!-- Press Enter to Confirm message -->
+  <h2 class="text-3xl mb-2 sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif fade-in title-3d">
+    <span id="trip-title">your trips!</span>
+  </h2>
 
   <!-- top action bar -->
-<div class="max-w-6xl mx-auto mb-4 flex items-center justify-between">
+  <div class="max-w-6xl mx-auto mb-4 flex items-center justify-between fade-in">
   <button id="back-btn" class="hidden px-6 py-3 bg-black text-white rounded-full text-sm font-medium 
   hover:bg-slate-800 transition-all transform hover:scale-105 duration-200">
-  ← back
-</button>
-
-  <div id="choose-tip" class="text-xs text-slate-600 rounded-full bg-white/60 px-3 py-1 shadow-sm">
-    Click a plan to choose it →
-  </div>
+    ← back
+  </button>
 </div>
 
 
-  <!-- two column canvas (cards + map) -->
-  <div id="view" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-    <!-- plans grid (starts as two cards) -->
+  <!-- two column canvas -->
+  <div id="view" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start fade-in">
     <div id="plans-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2"></div>
 
-    <!-- map column (hidden until a plan is chosen) -->
-    <div id="map-col" class="hidden">
+    <div id="map-col" class="hidden opacity-0 transition-opacity duration-500">
       <div class="md:sticky md:top-6">
         <div class="bg-white/80 rounded-2xl p-3 shadow-sm">
           <div id="map" class="w-full h-[75vh] rounded-xl bg-slate-100"></div>
@@ -48,22 +54,19 @@
     </div>
   </div>
 
-  <!-- Fallback/raw -->
   <div id="raw-block" class="mt-8 hidden max-w-6xl mx-auto">
     <h2 class="text-sm font-semibold text-slate-600 mb-2">raw output</h2>
     <pre class="bg-white/80 rounded-xl p-4 shadow-sm text-xs overflow-x-auto" id="raw-pre"></pre>
   </div>
 
- <div class="text-center mt-10">
-  <a href="{{ url_for('main.home') }}"
-     class="inline-block px-6 py-3 bg-black text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-all transform hover:scale-105">
-    return home
-  </a>
-</div>
+  <div class="text-center mt-10 fade-in">
+    <a href="{{ url_for('main.home') }}"
+      class="inline-block px-6 py-3 bg-black text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-all transform hover:scale-105">
+      return home
+    </a>
+  </div>
 
-
-<!-- Embed Gemini's string as JSON-string so we can recover it client-side -->
-<script type="application/json" id="itinerary-json">{{ payload | tojson }}</script>
+  <script type="application/json" id="itinerary-json">{{ payload | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
@@ -72,25 +75,18 @@
   const grid      = document.getElementById('plans-grid');
   const mapCol    = document.getElementById('map-col');
   const backBtn   = document.getElementById('back-btn');
-
-  const rawNode = document.getElementById('itinerary-json');
-  const rawBlock= document.getElementById('raw-block');
-  const rawPre  = document.getElementById('raw-pre');
+  const rawNode   = document.getElementById('itinerary-json');
+  const rawBlock  = document.getElementById('raw-block');
+  const rawPre    = document.getElementById('raw-pre');
 
   const CITY    = localStorage.getItem('tt.city') || '';
   const COUNTRY = localStorage.getItem('tt.country_name') || '';
 
-  // Update title with destination
   const titleEl = document.getElementById('trip-title');
-  if (CITY) {
-    titleEl.textContent = `your trip around ${CITY.toLowerCase()}!`;
-  } else if (COUNTRY) {
-    titleEl.textContent = `your trip around ${COUNTRY.toLowerCase()}!`;
-  } else {
-    titleEl.textContent = 'your trips!';
-  }
+  if (CITY) titleEl.textContent = `your trip around ${CITY.toLowerCase()}!`;
+  else if (COUNTRY) titleEl.textContent = `your trip around ${COUNTRY.toLowerCase()}!`;
+  else titleEl.textContent = 'your trips!';
 
-  // ---- recover Gemini output ----
   let rawText = "";
   try { rawText = JSON.parse(rawNode.textContent || '""'); } catch { rawText = ""; }
 
@@ -112,7 +108,6 @@
     return;
   }
 
-  // --- Wikimedia image helper ---
   const mem = new Map();
   const cacheGet = k => { const s = sessionStorage.getItem(k); return s ? JSON.parse(s) : null; }
   const cacheSet = (k,v) => { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch{} }
@@ -134,6 +129,7 @@
     mem.set(key, result); cacheSet(key, result);
     return result;
   }
+
   async function findImageForSpot(spot) {
     if (!spot) return null;
     const tries = [
@@ -148,11 +144,10 @@
     return null;
   }
 
-  // --- helpers ---
   const el = (tag, cls, text)=>{ const n=document.createElement(tag); if(cls) n.className=cls; if(text!=null) n.textContent=text; return n; };
 
   function activityItem(act){
-    const li = el('li','bg-white rounded-lg border overflow-hidden');
+    const li = el('li','bg-white rounded-lg border overflow-hidden fade-in');
     const imgWrap = el('div','relative w-full h-40 bg-slate-100');
     const img = el('img','w-full h-full object-cover absolute inset-0 hidden'); img.alt = act.spot || 'activity'; img.loading = 'lazy';
     imgWrap.appendChild(img);
@@ -178,11 +173,16 @@
   }
 
   function renderPlanCard(plan, idx){
-    // clickable card = "use this plan"
-    const card = el('div','plan-card relative bg-white/80 rounded-2xl p-5 shadow-sm flex flex-col gap-4 transition transform cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-emerald-400');
+    const card = el(
+      'div',
+      'plan-card relative bg-white/80 rounded-2xl p-5 shadow-sm flex flex-col gap-4 transition transform cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-emerald-400 opacity-0 translate-y-4 duration-500'
+    );
     card.tabIndex = 0;
 
-    // header + copy json pill
+    requestAnimationFrame(() => {
+      card.classList.remove('opacity-0', 'translate-y-4');
+    });
+
     const header = el('div','pr-28');
     const titleWrap = el('div');
     titleWrap.appendChild(el('h2','text-lg font-bold', plan.plan_name || `Plan ${idx+1}`));
@@ -190,7 +190,7 @@
     header.appendChild(titleWrap);
 
     const actions = el('div','absolute top-4 right-4 flex gap-2');
-    const copyBtn = el('button','px-2.5 py-1 text-xs border rounded-lg hover:bg-slate-50','copy plan json');
+    const copyBtn = el('button','px-2.5 py-1 text-xs border rounded-lg hover:bg-slate-50 transition','copy plan json');
     actions.appendChild(copyBtn);
 
     const headWrap = el('div','relative');
@@ -198,7 +198,6 @@
     headWrap.appendChild(actions);
     card.appendChild(headWrap);
 
-    // --- Day-by-day sections (like before) ---
     (plan.daily_plan || []).forEach(day => {
       const box = el('div','rounded-xl border p-4 space-y-3');
       const top = el('div','flex items-baseline justify-between gap-2');
@@ -212,14 +211,18 @@
       box.appendChild(list);
       card.appendChild(box);
     });
-    // --- end day-by-day ---
 
-    // interactions
     copyBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       navigator.clipboard.writeText(JSON.stringify(plan, null, 2));
-      copyBtn.textContent = 'copied!'; setTimeout(()=> copyBtn.textContent='copy plan json', 1200);
+      copyBtn.textContent = 'copied!';
+      copyBtn.classList.add('scale-110','bg-emerald-100','text-emerald-800','transition','duration-200');
+      setTimeout(()=>{
+        copyBtn.textContent='copy plan json';
+        copyBtn.classList.remove('scale-110','bg-emerald-100','text-emerald-800');
+      },1000);
     });
+
     card.addEventListener('click', () => choosePlan(idx, card, plan));
     card.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choosePlan(idx, card, plan); }
@@ -228,10 +231,8 @@
     return card;
   }
 
-  // initial render
   data.travel_plans.forEach((p,i)=> grid.appendChild(renderPlanCard(p,i)));
 
-  // ---- selection mode + sticky sync ----
   let chosenIndex = null;
   let heightObserver = null;
   let heightAdjust = null;
@@ -255,7 +256,6 @@
     if (chosenIndex !== null) return;
     chosenIndex = idx;
 
-    // fade out others
     const allCards = Array.from(grid.children);
     allCards.forEach(c=>{
       if (c !== card) {
@@ -266,20 +266,22 @@
       }
     });
 
-    // left lane only + reveal map
     grid.classList.remove('md:col-span-2','md:grid-cols-2');
     grid.classList.add('md:col-span-1','md:grid-cols-1');
     mapCol.classList.remove('hidden');
-    mapCol.classList.add('md:block');
-    backBtn.classList.remove('hidden');
 
-    // keep only chosen card
+    // ✨ smooth fade-in map
+    requestAnimationFrame(() => {
+      mapCol.classList.remove('opacity-0');
+    });
+
+    backBtn.classList.remove('hidden');
     grid.innerHTML = '';
     card.classList.remove('hidden','opacity-0','pointer-events-none');
     grid.appendChild(card);
 
     enableStickySync(card);
-    initMapForPlan(plan); // adds ALL markers
+    initMapForPlan(plan);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -290,30 +292,25 @@
     mapCol.classList.add('hidden');
     mapCol.classList.remove('md:block');
     backBtn.classList.add('hidden');
-
     grid.innerHTML = '';
     grid.classList.remove('md:col-span-1','md:grid-cols-1');
     grid.classList.add('md:col-span-2','md:grid-cols-2');
-
     data.travel_plans.forEach((p,i)=> grid.appendChild(renderPlanCard(p,i)));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // -----------------------
-  // MAP CODE (shows ALL markers) + sticky works via enableStickySync
-  // -----------------------
-  const MAPS_KEY = "***REMOVED***"; // your key
+  const MAPS_KEY = "***REMOVED***";
 
   let mapsLoaded = !!(window.google && window.google.maps);
   function loadMapsOnce(){
     return new Promise((resolve) => {
       if (mapsLoaded) return resolve();
-      if (!MAPS_KEY) return resolve(); // no key: show placeholder
+      if (!MAPS_KEY) return resolve();
       const s = document.createElement('script');
       s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}`;
       s.async = true;
       s.onload = ()=>{ mapsLoaded = true; resolve(); };
-      s.onerror= ()=> resolve(); // degrade gracefully
+      s.onerror= ()=> resolve();
       document.head.appendChild(s);
     });
   }
@@ -338,7 +335,6 @@
     const geocoder = new google.maps.Geocoder();
     const bounds = new google.maps.LatLngBounds();
 
-    // flatten all activities, dedupe by spot
     const acts = (plan.daily_plan || []).flatMap(day =>
       (day.activities || []).map(a => ({...a, day: day.day, date: day.date}))
     );
@@ -384,7 +380,6 @@
       map.fitBounds(bounds);
       if (map.getZoom() > 15) map.setZoom(15);
     } else {
-      // fallback to city center
       try {
         const { results } = await geocoder.geocode({ address: [CITY, COUNTRY].filter(Boolean).join(', ') });
         if (results && results[0]) {
@@ -394,8 +389,6 @@
       } catch {}
     }
   }
-  // -----------------------
-
-})(); // IIFE end
+})();
 </script>
 {% endblock %}
