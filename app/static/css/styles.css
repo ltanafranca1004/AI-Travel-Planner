@@ -69,3 +69,132 @@ body {
   color: #0f172a;
 }
 .ac-item:hover, .ac-item-active { background: #eef2ff; }
+
+/* Trip Questions Page Styles - Add to your styles.css */
+
+/* Budget Options */
+.budget-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.budget-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.budget-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.budget-option:hover .budget-label {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.budget-option input[type="radio"]:checked ~ .budget-label {
+  border-color: #000;
+  background: #fafafa;
+}
+
+/* Interest Tags */
+.interest-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.interest-option input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.interest-label {
+  display: block;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  text-align: center;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.interest-option:hover .interest-label {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.interest-option input[type="checkbox"]:checked ~ .interest-label {
+  border-color: #000;
+  background: #000;
+  color: white;
+}
+
+/* Pace Options */
+.pace-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.pace-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.pace-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.pace-option:hover .pace-label {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  transform: translateY(-2px);
+}
+
+.pace-option input[type="radio"]:checked ~ .pace-label {
+  border-color: #000;
+  background: #fafafa;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Textarea improvements */
+textarea.search-bar-outline {
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+textarea.search-bar-outline::placeholder {
+  color: #94a3b8;
+}
+
+/* Form animations */
+form > div {
+  animation: fade-in-scale 400ms ease-out backwards;
+}
+
+form > div:nth-child(1) { animation-delay: 50ms; }
+form > div:nth-child(2) { animation-delay: 100ms; }
+form > div:nth-child(3) { animation-delay: 150ms; }
+form > div:nth-child(4) { animation-delay: 200ms; }
