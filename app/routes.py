@@ -11,7 +11,7 @@ GOOGLE_MAPS_API_KEY = "***REMOVED***"
 
 # configure gemini
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-pro")
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 @bp.get("/")
 def home():

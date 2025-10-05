@@ -1,17 +1,37 @@
 {% extends "base.html" %}
 {% block content %}
+
+<div id="navbar" class="fixed top-0 left-0 w-full z-50 bg-[#FFEFEF] backdrop-blur-sm shadow-sm">
+  <div class="max-w-7xl mx-auto px-6 py-2 flex items-center gap-2">
+    <a href="{{ url_for('main.home') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+      <img
+        src="{{ url_for('static', filename='img/turt-logo.png') }}"
+        alt="Turtle Trips logo"
+        class="h-12 w-auto"  
+        />
+      <span class="text-xl font-extrabold title-lower-serif tracking-tight">turtle trips.</span>
+    </a>
+  </div>
+  <div class="navbar-underline h-[1px] w-full bg-black/20"></div>
+</div>
+
 <section class="pt-8 sm:pt-12">
-  <h1 class="text-2xl font-extrabold text-center tracking-tight title-lower-serif mb-6">
-    your trip.
-  </h1>
+    <h2 class="text-3xl mb-12 sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif fade-in title-3d">
+   your trips!
+</h2>
 
   <!-- top action bar -->
-  <div class="max-w-6xl mx-auto mb-4 flex items-center justify-between">
-    <button id="back-btn" class="hidden px-3 py-1 rounded-lg border text-sm hover:bg-slate-50">← back</button>
-    <div id="choose-tip" class="text-xs text-slate-600 rounded-full bg-white/60 px-3 py-1 shadow-sm">
-      Click a plan to choose it →
-    </div>
+<div class="max-w-6xl mx-auto mb-4 flex items-center justify-between">
+  <button id="back-btn" class="hidden px-6 py-3 bg-black text-white rounded-full text-sm font-medium 
+  hover:bg-slate-800 transition-all transform hover:scale-105 duration-200">
+  ← back
+</button>
+
+  <div id="choose-tip" class="text-xs text-slate-600 rounded-full bg-white/60 px-3 py-1 shadow-sm">
+    Click a plan to choose it →
   </div>
+</div>
+
 
   <!-- two column canvas (cards + map) -->
   <div id="view" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -34,10 +54,13 @@
     <pre class="bg-white/80 rounded-xl p-4 shadow-sm text-xs overflow-x-auto" id="raw-pre"></pre>
   </div>
 
-  <div class="text-center mt-10">
-    <a href="{{ url_for('main.home') }}" class="text-xs text-slate-600 underline">return home</a>
-  </div>
-</section>
+ <div class="text-center mt-10">
+  <a href="{{ url_for('main.home') }}"
+     class="inline-block px-6 py-3 bg-black text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-all transform hover:scale-105">
+    return home
+  </a>
+</div>
+
 
 <!-- Embed Gemini's string as JSON-string so we can recover it client-side -->
 <script type="application/json" id="itinerary-json">{{ payload | tojson }}</script>

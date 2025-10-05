@@ -1,24 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
-<div id="navbar" class="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-sm shadow-sm">
+<div id="navbar" class="fixed top-0 left-0 w-full z-50 bg-[#FFEFEF] backdrop-blur-sm shadow-sm">
   <div class="max-w-7xl mx-auto px-6 py-2 flex items-center gap-2">
     <a href="{{ url_for('main.home') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
       <img
         src="{{ url_for('static', filename='img/turt-logo.png') }}"
         alt="Turtle Trips logo"
-        class="h-12 w-auto"  
+        class="h-14 w-auto"  
         />
-      <span class="text-xl font-extrabold title-lower-serif tracking-tight">turtle trips.</span>
+      <span class="text-xl font-extrabold title-lower-serif tracking-tight title-3d">turtle trips.</span>
     </a>
   </div>
   <div class="navbar-underline h-[1px] w-full bg-black/20"></div>
 </div>
 
 <!-- Add top padding to account for fixed navbar -->
-<section class="pt-24 sm:pt-28 max-w-3xl mx-auto">
-  <h2 class="text-xl font-semibold text-center mb-8 text-slate-700">
-    trip questions.
-  </h2>
+<section class="pt-24 pb-15 sm:pt-28 max-w-3xl mx-auto">
+  <h2 class="text-3xl mb-12 sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif fade-in title-3d">
+   trip questions.
+</h2>
+
   {# Trip Summary Card #}
   <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5 mb-8">
     <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">your trip</h2>
@@ -100,34 +101,53 @@
       </div>
     </div>
 
- <!-- Travel Pace -->
 <!-- Travel Pace -->
 <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5">
   <label class="block text-base font-semibold mb-4">travel pace</label>
   <div class="grid grid-cols-3 gap-3">
+    <!-- Chill -->
     <label class="pace-option">
       <input type="radio" name="pace" value="chill">
-      <span class="pace-label">
-        <img src="{{ url_for('static', filename='img/turt1-removebg-preview.png') }}" alt="Chill pace" class="h-24 w-full object-contain">
-        <span class="text-sm">chill</span>
+      <span class="pace-label flex flex-col items-center">
+        <div class="h-24 w-full flex items-center justify-center">
+          <img src="{{ url_for('static', filename='img/turt1-removebg-preview.png') }}"
+               alt="Chill pace"
+               class="max-h-full max-w-full object-contain">
+        </div>
+        <span class="text-sm mt-1">chill</span>
       </span>
     </label>
+
+    <!-- Balanced -->
     <label class="pace-option">
       <input type="radio" name="pace" value="balanced" checked>
-      <span class="pace-label">
-        <img src="{{ url_for('static', filename='img/turt-run-removebg-preview.png') }}" alt="Balanced pace" class="h-24 w-full object-contain">
-        <span class="text-sm">balanced</span>
+      <span class="pace-label flex flex-col items-center">
+        <div class="h-24 w-full flex items-center justify-center">
+          <img src="{{ url_for('static', filename='img/turt-run-removebg-preview.png') }}"
+               alt="Balanced pace"
+               class="max-h-full max-w-full object-contain">
+        </div>
+        <span class="text-sm mt-1">balanced</span>
       </span>
     </label>
+
+    <!-- Packed -->
     <label class="pace-option">
       <input type="radio" name="pace" value="packed">
-      <span class="pace-label">
-        <img src="{{ url_for('static', filename='img/turt-sprint-removebg-preview.png') }}" alt="Packed pace" class="h-24 w-full object-contain">
-        <span class="text-sm">packed</span>
+      <span class="pace-label flex flex-col items-center">
+        <div class="h-24 w-full flex items-center justify-center">
+          <img src="{{ url_for('static', filename='img/turt-sprint-removebg-preview.png') }}"
+               alt="Packed pace"
+               class="max-h-full max-w-full object-contain">
+        </div>
+        <span class="text-sm mt-1">packed</span>
       </span>
     </label>
   </div>
 </div>
+
+
+
 
   <!-- Additional Details -->
   <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5 space-y-5">
@@ -169,6 +189,24 @@
   </form>
 </section>
 
+<div id="loading-overlay" class="fixed inset-0 bg-white/90 z-50 flex flex-col items-center justify-center hidden">
+  <!-- Wait image -->
+  <img 
+    src="{{ url_for('static', filename='img/wait.png') }}"
+    alt="Loading turtle"
+    class="h-64 w-auto mb-4"
+  />
+  
+  <!-- Loading bar container -->
+    <div class="loader mb-4"></div>
+
+  
+  <!-- Loading text -->
+ <p class="text-3xl mb-12 sm:text-2xl font-extrabold text-center tracking-tight title-lower-serif fade-in ">
+   slowly but surely, planning your adventure...
+</p>
+
+</div>
 
 {% endblock %}
 
@@ -176,6 +214,30 @@
 <script>
   // Update footer year
   document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+document.getElementById('q-form').addEventListener('submit', (e) => {
+  // Show the loading overlay
+  const overlay = document.getElementById('loading-overlay');
+  overlay.classList.remove('hidden');
+
+  // gather answers
+  const fd = new FormData(e.target);
+  const interests = Array.from(e.target.querySelectorAll('input[name="interests"]:checked')).map(el => el.value);
+
+  const merged = {
+    ...basePayload,
+    budget_tier: fd.get('budget_tier') || '',
+    pace: fd.get('pace') || 'balanced',
+    interests,
+    must_see: (fd.get('must_see') || '').trim(),
+    must_avoid: (fd.get('must_avoid') || '').trim(),
+    notes: (fd.get('notes') || '').trim()
+  };
+
+  document.getElementById('payload').value = JSON.stringify(merged);
+
+  // let the form submit normally (overlay stays until next page loads)
+});
 
   // base trip bits coming in from the calendar redirect
   const basePayload = {

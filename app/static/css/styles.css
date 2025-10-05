@@ -273,3 +273,16 @@ body {
   color: #111; /* your main text color */
   text-shadow: 2px 2px 0 #F6F5F2, 4px 4px 0 rgba(255,255,255,0.6);
 }
+
+.loader {
+  width: 60px;
+  aspect-ratio: 4;
+  background: radial-gradient(circle closest-side, #000 90%, #0000) 0/calc(100%/3) 100% space;
+  clip-path: inset(0 100% 0 0);
+  animation: l1 1s steps(4) infinite;
+}
+
+@keyframes l1 {
+  to { clip-path: inset(0 -34% 0 0); }
+}
+
