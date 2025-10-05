@@ -8,8 +8,6 @@ import os
 bp = Blueprint("main", __name__)
 
 load_dotenv()
-print(os.getenv("GEMINI_API_KEY"))
-print(os.getenv("GOOGLE_MAPS_API_KEY"))
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
@@ -49,7 +47,6 @@ def generate():
     try:
         resp = model.generate_content(prompt)
         generated_content = (resp.text or "").strip()
-        print(generated_content)
     except Exception as e:
         generated_content = json.dumps({"error": "Gemini API failed", "detail": str(e)})
 
