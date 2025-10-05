@@ -2,12 +2,16 @@
 import json
 from flask import Blueprint, render_template, request
 import google.generativeai as genai
+from dotenv import load_dotenv
+import os
 
 bp = Blueprint("main", __name__)
 
-# --- your keys (hardcoded as requested) ---
-GEMINI_API_KEY = "***REMOVED***"
-GOOGLE_MAPS_API_KEY = "***REMOVED***"
+load_dotenv()
+print(os.getenv("GEMINI_API_KEY"))
+print(os.getenv("GOOGLE_MAPS_API_KEY"))
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
 # configure gemini
 genai.configure(api_key=GEMINI_API_KEY)
@@ -45,6 +49,7 @@ def generate():
     try:
         resp = model.generate_content(prompt)
         generated_content = (resp.text or "").strip()
+        print(generated_content)
     except Exception as e:
         generated_content = json.dumps({"error": "Gemini API failed", "detail": str(e)})
 
