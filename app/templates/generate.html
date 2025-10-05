@@ -28,9 +28,13 @@
 <script>
 (function () {
   const container = document.getElementById('plans-grid');
-  const rawNode = document.getElementById('itinerary-json');
-  const rawBlock = document.getElementById('raw-block');
-  const rawPre = document.getElementById('raw-pre');
+  const rawNode   = document.getElementById('itinerary-json');
+  const rawBlock  = document.getElementById('raw-block');
+  const rawPre    = document.getElementById('raw-pre');
+
+  // Pull the city/country user chose (to bias image queries)
+  const CITY    = localStorage.getItem('tt.city') || '';
+  const COUNTRY = localStorage.getItem('tt.country_name') || '';
 
   // 1) Recover the raw text Gemini returned (we stored it as a JSON string literal)
   let rawText = "";
@@ -40,17 +44,11 @@
   function extractJSON(text) {
     if (!text) return null;
     let t = text.trim();
-
-    // Grab content inside ```json ... ``` fences if present
     const fenced = t.match(/```(?:json)?([\s\S]*?)```/i);
     if (fenced) t = fenced[1].trim();
-
-    // Slice from first “{” to last “}”
     const first = t.indexOf('{');
     const last  = t.lastIndexOf('}');
     if (first > -1 && last > -1) t = t.slice(first, last + 1);
-
-    // Try parsing; attempt a light trailing-comma cleanup on failure
     try { return JSON.parse(t); }
     catch {
       try { return JSON.parse(t.replace(/,\s*([}\]])/g, '$1')); }
@@ -60,11 +58,57 @@
 
   const data = extractJSON(rawText);
 
-  // 3) Render nicely (two columns—one per plan). Fallback to raw if parsing failed.
+  // 3) If parsing fails, show raw output
   if (!data || !Array.isArray(data.travel_plans)) {
     rawBlock.classList.remove('hidden');
     rawPre.textContent = rawText || "(no content)";
     return;
+  }
+
+  // --- Wikimedia/Wikipedia image lookup (no API key needed) ---
+  const mem = new Map(); // in-tab cache
+  function cacheGet(k){ const s = sessionStorage.getItem(k); return s ? JSON.parse(s) : null; }
+  function cacheSet(k,v){ try { sessionStorage.setItem(k, JSON.stringify(v)); } catch{} }
+
+  async function fetchWikiImage(query) {
+    const key = `img:${query.toLowerCase()}`;
+    const cached = mem.get(key) || cacheGet(key);
+    if (cached) return cached;
+
+    // 1) Search for the best page title
+    const searchURL = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
+    const sRes = await fetch(searchURL);
+    const sJson = await sRes.json().catch(()=>({}));
+    const title = sJson?.query?.search?.[0]?.title;
+
+    if (!title) { mem.set(key,null); cacheSet(key,null); return null; }
+
+    // 2) Pull page summary (has thumbnail/original) — supports CORS
+    const sumURL = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+    const pRes = await fetch(sumURL);
+    const pJson = await pRes.json().catch(()=>({}));
+
+    const url = pJson?.originalimage?.source || pJson?.thumbnail?.source || null;
+    const result = url ? { url, title: pJson?.title || title, extract: pJson?.extract || "" } : null;
+
+    mem.set(key, result);
+    cacheSet(key, result);
+    return result;
+  }
+
+  async function findImageForSpot(spot) {
+    if (!spot) return null;
+    // Try "spot + city + country" first, then "spot + city", then just "spot"
+    const tries = [
+      [spot, CITY, COUNTRY].filter(Boolean).join(' '),
+      [spot, CITY].filter(Boolean).join(' '),
+      spot
+    ];
+    for (const q of tries) {
+      const hit = await fetchWikiImage(q);
+      if (hit?.url) return hit;
+    }
+    return null;
   }
 
   // Small UI helpers
@@ -75,6 +119,58 @@
     return n;
   };
 
+  function activityCard(act) {
+    const li = el('li','bg-white rounded-lg border overflow-hidden');
+
+    // Image header
+    const imgWrap = el('div','relative w-full h-40 bg-slate-100');
+    const img = el('img','w-full h-full object-cover absolute inset-0 hidden');
+    img.alt = act.spot || 'activity';
+    img.loading = 'lazy';
+    imgWrap.appendChild(img);
+
+    // Tiny label overlay (time of day)
+    if (act.time_of_day) {
+      const badge = el('div','absolute top-2 left-2 text-[10px] px-2 py-1 rounded-full bg-white/90 border');
+      badge.textContent = act.time_of_day;
+      imgWrap.appendChild(badge);
+    }
+
+    // Body
+    const body = el('div','p-3');
+    const heading = el('div','text-sm font-medium', act.spot || '(unspecified spot)');
+    const desc = act.description ? el('p','text-sm text-slate-600 mt-1', act.description) : null;
+
+    body.appendChild(heading);
+    if (desc) body.appendChild(desc);
+
+    li.appendChild(imgWrap);
+    li.appendChild(body);
+
+    // async load image
+    (async () => {
+      try {
+        const hit = await findImageForSpot(act.spot);
+        if (hit?.url) {
+          img.src = hit.url;
+          img.classList.remove('hidden');
+        } else {
+          // minimal placeholder
+          const ph = el('div','absolute inset-0 flex items-center justify-center text-xs text-slate-500');
+          ph.textContent = 'no image found';
+          imgWrap.appendChild(ph);
+        }
+      } catch {
+        const ph = el('div','absolute inset-0 flex items-center justify-center text-xs text-slate-500');
+        ph.textContent = 'no image found';
+        imgWrap.appendChild(ph);
+      }
+    })();
+
+    return li;
+  }
+
+  // Render each plan as one column
   data.travel_plans.forEach((plan, idx) => {
     const card = el('div', 'bg-white/80 rounded-2xl p-5 shadow-sm flex flex-col gap-4');
 
@@ -87,7 +183,6 @@
     }
     header.appendChild(titleWrap);
 
-    // Copy JSON button (for this single plan)
     const copyBtn = el('button','px-2.5 py-1 text-xs border rounded-lg hover:bg-slate-50');
     copyBtn.textContent = 'copy plan json';
     copyBtn.addEventListener('click', () => {
@@ -101,7 +196,7 @@
 
     // Days
     (plan.daily_plan || []).forEach(day => {
-      const dayBox = el('div','rounded-xl border p-4 space-y-2');
+      const dayBox = el('div','rounded-xl border p-4 space-y-3');
       const dayTitle = el('div','flex items-baseline justify-between gap-2');
       const left = el('div','font-semibold', `day ${day.day ?? ''}${day.date ? ` — ${day.date}` : ''}`);
       const theme = day.theme ? el('div','text-xs text-slate-600 italic', day.theme) : null;
@@ -109,15 +204,9 @@
       if (theme) dayTitle.appendChild(theme);
       dayBox.appendChild(dayTitle);
 
-      const list = el('ul','space-y-2');
+      const list = el('ul','grid gap-3'); // stacked; keep it simple
       (day.activities || []).forEach(act => {
-        const li = el('li','bg-white rounded-lg p-3 border');
-        const line1 = el('div','text-sm font-medium');
-        line1.textContent = `${act.time_of_day ? act.time_of_day + ': ' : ''}${act.spot || ''}`;
-        const line2 = act.description ? el('p','text-sm text-slate-600 mt-1', act.description) : null;
-        li.appendChild(line1);
-        if (line2) li.appendChild(line2);
-        list.appendChild(li);
+        list.appendChild(activityCard(act));
       });
       dayBox.appendChild(list);
       card.appendChild(dayBox);
