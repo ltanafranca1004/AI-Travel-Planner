@@ -6,7 +6,7 @@
     <img
       src="{{ url_for('static', filename='img/turt1-removebg-preview.svg') }}"
       alt="Turtle Trips logo"
-      class="h-8"
+      class="h-12"
     />
     <span class="text-lg font-extrabold title-lower-serif">turtle trips.</span>
   </a>
@@ -98,33 +98,34 @@
       </div>
     </div>
 
-    <!-- Travel Pace -->
-    <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5">
-      <label class="block text-base font-semibold mb-4">travel pace</label>
-      <div class="grid grid-cols-3 gap-3">
-        <label class="pace-option">
-          <input type="radio" name="pace" value="chill">
-          <span class="pace-label">
-            <span class="text-2xl">🐢</span>
-            <span class="text-sm">chill</span>
-          </span>
-        </label>
-        <label class="pace-option">
-          <input type="radio" name="pace" value="balanced" checked>
-          <span class="pace-label">
-            <span class="text-2xl">🚶</span>
-            <span class="text-sm">balanced</span>
-          </span>
-        </label>
-        <label class="pace-option">
-          <input type="radio" name="pace" value="packed">
-          <span class="pace-label">
-            <span class="text-2xl">🏃</span>
-            <span class="text-sm">packed</span>
-          </span>
-        </label>
-      </div>
-    </div>
+ <!-- Travel Pace -->
+<!-- Travel Pace -->
+<div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5">
+  <label class="block text-base font-semibold mb-4">travel pace</label>
+  <div class="grid grid-cols-3 gap-3">
+    <label class="pace-option">
+      <input type="radio" name="pace" value="chill">
+      <span class="pace-label">
+        <img src="{{ url_for('static', filename='img/turt4-removebg-preview.png') }}" alt="Chill pace" class="h-24 w-full object-contain">
+        <span class="text-sm">chill</span>
+      </span>
+    </label>
+    <label class="pace-option">
+      <input type="radio" name="pace" value="balanced" checked>
+      <span class="pace-label">
+        <img src="{{ url_for('static', filename='img/turt-run-removebg-preview.png') }}" alt="Balanced pace" class="h-24 w-full object-contain">
+        <span class="text-sm">balanced</span>
+      </span>
+    </label>
+    <label class="pace-option">
+      <input type="radio" name="pace" value="packed">
+      <span class="pace-label">
+        <img src="{{ url_for('static', filename='img/turt-sprint-removebg-preview.png') }}" alt="Packed pace" class="h-24 w-full object-contain">
+        <span class="text-sm">packed</span>
+      </span>
+    </label>
+  </div>
+</div>
 
   <!-- Additional Details -->
   <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5 space-y-5">
