@@ -5,11 +5,126 @@
     your trip.
   </h1>
 
-    {{ payload }}
+  <!-- Plans grid -->
+  <div id="plans-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
 
-    <div class="text-center">
-      <a href="{{ url_for('main.home') }}" class="text-xs text-slate-600 underline">return home</a>
-    </div>
+  <!-- Fallback/raw -->
+  <div id="raw-block" class="mt-8 hidden">
+    <h2 class="text-sm font-semibold text-slate-600 mb-2">raw output</h2>
+    <pre class="bg-white/80 rounded-xl p-4 shadow-sm text-xs overflow-x-auto" id="raw-pre"></pre>
+  </div>
+
+  <div class="text-center mt-10">
+    <a href="{{ url_for('main.home') }}" class="text-xs text-slate-600 underline">return home</a>
   </div>
 </section>
+
+<!-- Safely embed Gemini's string as JSON-string so we can recover it client-side -->
+<script type="application/json" id="itinerary-json">{{ payload | tojson }}</script>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const container = document.getElementById('plans-grid');
+  const rawNode = document.getElementById('itinerary-json');
+  const rawBlock = document.getElementById('raw-block');
+  const rawPre = document.getElementById('raw-pre');
+
+  // 1) Recover the raw text Gemini returned (we stored it as a JSON string literal)
+  let rawText = "";
+  try { rawText = JSON.parse(rawNode.textContent || '""'); } catch { rawText = ""; }
+
+  // 2) Try to extract valid JSON from whatever format (handles ```json fences, extra prose)
+  function extractJSON(text) {
+    if (!text) return null;
+    let t = text.trim();
+
+    // Grab content inside ```json ... ``` fences if present
+    const fenced = t.match(/```(?:json)?([\s\S]*?)```/i);
+    if (fenced) t = fenced[1].trim();
+
+    // Slice from first “{” to last “}”
+    const first = t.indexOf('{');
+    const last  = t.lastIndexOf('}');
+    if (first > -1 && last > -1) t = t.slice(first, last + 1);
+
+    // Try parsing; attempt a light trailing-comma cleanup on failure
+    try { return JSON.parse(t); }
+    catch {
+      try { return JSON.parse(t.replace(/,\s*([}\]])/g, '$1')); }
+      catch { return null; }
+    }
+  }
+
+  const data = extractJSON(rawText);
+
+  // 3) Render nicely (two columns—one per plan). Fallback to raw if parsing failed.
+  if (!data || !Array.isArray(data.travel_plans)) {
+    rawBlock.classList.remove('hidden');
+    rawPre.textContent = rawText || "(no content)";
+    return;
+  }
+
+  // Small UI helpers
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+
+  data.travel_plans.forEach((plan, idx) => {
+    const card = el('div', 'bg-white/80 rounded-2xl p-5 shadow-sm flex flex-col gap-4');
+
+    // Header
+    const header = el('div', 'flex items-start justify-between gap-3');
+    const titleWrap = el('div');
+    titleWrap.appendChild(el('h2','text-lg font-bold', plan.plan_name || `Plan ${idx+1}`));
+    if (plan.plan_description) {
+      titleWrap.appendChild(el('p','text-sm text-slate-600 mt-1', plan.plan_description));
+    }
+    header.appendChild(titleWrap);
+
+    // Copy JSON button (for this single plan)
+    const copyBtn = el('button','px-2.5 py-1 text-xs border rounded-lg hover:bg-slate-50');
+    copyBtn.textContent = 'copy plan json';
+    copyBtn.addEventListener('click', () => {
+      const onePlan = JSON.stringify(plan, null, 2);
+      navigator.clipboard.writeText(onePlan);
+      copyBtn.textContent = 'copied!';
+      setTimeout(() => copyBtn.textContent = 'copy plan json', 1200);
+    });
+    header.appendChild(copyBtn);
+    card.appendChild(header);
+
+    // Days
+    (plan.daily_plan || []).forEach(day => {
+      const dayBox = el('div','rounded-xl border p-4 space-y-2');
+      const dayTitle = el('div','flex items-baseline justify-between gap-2');
+      const left = el('div','font-semibold', `day ${day.day ?? ''}${day.date ? ` — ${day.date}` : ''}`);
+      const theme = day.theme ? el('div','text-xs text-slate-600 italic', day.theme) : null;
+      dayTitle.appendChild(left);
+      if (theme) dayTitle.appendChild(theme);
+      dayBox.appendChild(dayTitle);
+
+      const list = el('ul','space-y-2');
+      (day.activities || []).forEach(act => {
+        const li = el('li','bg-white rounded-lg p-3 border');
+        const line1 = el('div','text-sm font-medium');
+        line1.textContent = `${act.time_of_day ? act.time_of_day + ': ' : ''}${act.spot || ''}`;
+        const line2 = act.description ? el('p','text-sm text-slate-600 mt-1', act.description) : null;
+        li.appendChild(line1);
+        if (line2) li.appendChild(line2);
+        list.appendChild(li);
+      });
+      dayBox.appendChild(list);
+      card.appendChild(dayBox);
+    });
+
+    container.appendChild(card);
+  });
+})();
+</script>
 {% endblock %}
