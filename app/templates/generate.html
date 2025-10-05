@@ -4,7 +4,7 @@
   <div class="max-w-7xl mx-auto px-6 py-2 flex items-center gap-2">
     <a href="{{ url_for('main.home') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
       <img src="{{ url_for('static', filename='img/turt-logo.png') }}" alt="Turtle Trips logo" class="h-12 w-auto" />
-      <span class="text-xl font-extrabold title-lower-serif tracking-tight">turtle trips ai.</span>
+      <span class="text-xl font-extrabold title-lower-serif tracking-tight">turtle trips.</span>
     </a>
   </div>
   <div class="navbar-underline h-[1px] w-full bg-black/20"></div>
@@ -20,7 +20,7 @@
 </style>
 
 <section class="pt-8 sm:pt-12">
-  <h2 class="text-3xl mb-2 sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif fade-in title-3d">
+  <h2 class="text-3xl mb-2 sm:mb-3 sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif fade-in title-3d">
     <span id="trip-title">your trips!</span>
   </h2>
 
@@ -61,17 +61,18 @@
   <!-- Turtle Mascot + speech -->
   <div id="turtle-mascot-wrapper" 
      class="fixed bottom-12 z-50 flex flex-col items-center transition-all duration-300"
-     style="left: 3.9rem;"> <!-- adjust 8rem to move mascot more right -->
-  <div id="turtle-speech" class="mb-2 max-w-xs px-4 py-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm text-sm font-medium font-montserrat text-slate-800">
-    <!-- text will be set by JS -->
+     style="left: 3.9rem;">
+    <div id="turtle-speech" class="mb-2 max-w-xs px-4 py-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm text-sm font-medium font-montserrat text-slate-800">
+      <!-- set by JS -->
+    </div>
+    <img 
+      id="turtle-mascot" 
+      src="{{ url_for('static', filename='img/kiss.png') }}" 
+      alt="Turtle Mascot" 
+      class="h-44 w-auto pointer-events-none"
+    />
   </div>
-  <img 
-    id="turtle-mascot" 
-    src="{{ url_for('static', filename='img/kiss.png') }}" 
-    alt="Turtle Mascot" 
-    class="h-44 w-auto pointer-events-none"
-  />
-</div>
+
   <script type="application/json" id="itinerary-json">{{ payload | tojson }}</script>
 </section>
 {% endblock %}
@@ -149,7 +150,7 @@
   ]);
 
   // =====================================================================
-  // City center (bias) — one geocode per page
+  // City center (bias)
   // =====================================================================
   let CITY_CENTER = null;
   async function getCityCenter(){
@@ -233,7 +234,7 @@
 
     const center = CITY_CENTER || await getCityCenter();
 
-    // 1) Biased Text Search (fast) with 1.8s timeout
+    // 1) Biased Text Search
     try {
       const results = await withTimeout(placesTextSearch(query, center), 1800);
       for (const r of results) {
@@ -253,7 +254,7 @@
       }
     } catch {}
 
-    // 2) Biased FindPlace (backup) with 1.8s timeout
+    // 2) Biased FindPlace
     try {
       const cands = await withTimeout(placesFindPlace(query, center), 1800);
       for (const c of cands) {
@@ -273,13 +274,13 @@
       }
     } catch {}
 
-    // 3) Wikipedia fallback (fast, no key)
+    // 3) Wikipedia fallback
     const wiki = await fetchWikiImage(query);
     cacheSet(ck, wiki || null);
     return wiki;
   }
 
-  // photo lazy queue (loads only when visible; small max concurrency)
+  // photo lazy queue
   const PHOTO_CONCURRENCY = 6;
   let photoInFlight = 0;
   const photoQueue = [];
@@ -338,7 +339,7 @@
 
   function activityItem(act){
     const li = el('li','bg-white rounded-lg border overflow-hidden fade-in');
-    const imgWrap = el('div','relative w-full h-40 bg-slate-100 skel'); // skeleton
+    const imgWrap = el('div','relative w-full h-40 bg-slate-100 skel');
     imgWrap.dataset.spot = act.spot || '';
     const img = el('img','w-full h-full object-cover absolute inset-0 hidden');
     img.alt = act.spot || 'activity'; img.loading = 'lazy'; img.decoding = 'async'; img.fetchPriority = 'low';
@@ -353,9 +354,7 @@
     if (act.description) body.appendChild(el('p','text-sm text-slate-600 mt-1', act.description));
     li.appendChild(imgWrap); li.appendChild(body);
 
-    // lazy fetch photo when in view
-    io.observe(imgWrap);
-
+    io.observe(imgWrap); // lazy fetch photo when in view
     return li;
   }
 
@@ -364,18 +363,18 @@
     card.tabIndex = 0;
     requestAnimationFrame(() => { card.classList.remove('opacity-0', 'translate-y-4'); });
 
-    const header = el('div','pr-28');
+    // header (no actions, no copy button)
+    const header = el('div','pr-0');
     const titleWrap = el('div');
     titleWrap.appendChild(el('h2','text-lg font-bold', plan.plan_name || `Plan ${idx+1}`));
     if (plan.plan_description) titleWrap.appendChild(el('p','text-sm text-slate-600 mt-1', plan.plan_description));
     header.appendChild(titleWrap);
 
-    const actions = el('div','absolute top-4 right-4 flex gap-2');
-    const copyBtn = el('button','px-2.5 py-1  bg-black text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-all transform hover:scale-105">','copy plan json');
-    actions.appendChild(copyBtn);
+    const headWrap = el('div','relative');
+    headWrap.appendChild(header);
+    card.appendChild(headWrap);
 
-    const headWrap = el('div','relative'); headWrap.appendChild(header); headWrap.appendChild(actions); card.appendChild(headWrap);
-
+    // days
     (plan.daily_plan || []).forEach(day => {
       const box = el('div','rounded-xl border p-4 space-y-3');
       const top = el('div','flex items-baseline justify-between gap-2');
@@ -388,14 +387,6 @@
       (day.activities || []).forEach(a => list.appendChild(activityItem(a)));
       box.appendChild(list);
       card.appendChild(box);
-    });
-
-    copyBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(JSON.stringify(plan, null, 2));
-      copyBtn.textContent = 'copied!';
-      copyBtn.classList.add('scale-110','bg-emerald-100','text-emerald-800','transition','duration-200');
-      setTimeout(()=>{ copyBtn.textContent='copy plan json'; copyBtn.classList.remove('scale-110','bg-emerald-100','text-emerald-800'); },1000);
     });
 
     card.addEventListener('click', () => choosePlan(idx, card, plan));
@@ -519,26 +510,6 @@
       activities: (d.activities || []).slice().sort((a,b) => timeRank(a.time_of_day) - timeRank(b.time_of_day))
     }));
 
-    document.addEventListener('DOMContentLoaded', () => {
-    const mascotWrapper = document.getElementById('turtle-mascot-wrapper');
-    const speechEl = document.getElementById('turtle-speech');
-    const footer = document.querySelector('footer');
-
-    const phrases = [
-      "sea-ze the day!", "turtley excellent!", "fin-tastic picks!",
-      "shell yeah!", "you're on the right shell!", "these plans are turtley rad!"
-    ];
-    speechEl.textContent = phrases[Math.floor(Math.random() * phrases.length)];
-
-    window.addEventListener('scroll', () => {
-      if (!mascotWrapper || !footer) return;
-      const footerRect = footer.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      const overlap = windowHeight - footerRect.top;
-      mascotWrapper.style.bottom = overlap > 0 ? `${overlap + 24}px` : '3rem';
-    });
-  });
-
     // geocode helper (with cache)
     async function geocodeQuery(q){
       const ck = `geo:${q.toLowerCase()}`; const cached = cacheGet(ck);
@@ -626,7 +597,6 @@
       directionsService.route(
         { origin, destination, waypoints, optimizeWaypoints: false, travelMode },
         (res, status) => {
-          // --- guarantee numbering starts at 1 every time ---
           if (status !== 'OK' || !res) { drawMarkersOnly(ordered); return; }
 
           const color = ['#10b981','#3b82f6','#ef4444','#f59e0b','#8b5cf6','#14b8a6'][index % 6];
