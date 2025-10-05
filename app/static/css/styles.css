@@ -267,3 +267,9 @@ body {
     }
 }
 
+/* Title white offset */
+.title-3d {
+  position: relative;
+  color: #111; /* your main text color */
+  text-shadow: 2px 2px 0 #F6F5F2, 4px 4px 0 rgba(255,255,255,0.6);
+}
