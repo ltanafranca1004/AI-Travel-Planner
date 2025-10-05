@@ -2,18 +2,19 @@
 {% block content %}
 <!-- Logo in top left corner -->
 <div class="absolute top-6 left-6">
-  <a href="{{ url_for('main.home') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+  <a href="{{ url_for('main.home') }}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
     <img
       src="{{ url_for('static', filename='img/turt-logo.png') }}"
       alt="Turtle Trips logo"
-      class="h-12"
+      class="h-16 w-auto"
     />
-    <span class="text-lg font-extrabold title-lower-serif">turtle trips.</span>
+    <span class="text-2xl font-extrabold title-lower-serif tracking-tight">turtle trips.</span>
   </a>
 </div>
 
+
 <section class="pt-8 sm:pt-12 max-w-3xl mx-auto">
-  <h2 class="text-xl font-semibold text-center mb-8 text-slate-700">
+  <h2 class="text-xl font-semibold text-center mb-8 color-black text-slate-700">
     trip questions.
   </h2>
 
