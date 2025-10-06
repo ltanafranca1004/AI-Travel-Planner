@@ -28,6 +28,11 @@
   <div class="max-w-6xl mx-auto mb-4 flex items-center justify-between fade-in">
     <button id="back-btn" class="hidden px-6 py-3 bg-black text-white rounded-full text-sm font-medium 
       hover:bg-slate-800 transition-all transform hover:scale-105 duration-200">← back</button>
+    <form id="save-form" method="post" action="{{ url_for('main.trips_save') }}" class="flex items-center gap-2">
+      <input type="hidden" name="payload" id="save-payload" />
+      <input type="text" name="title" class="search-bar-outline w-48" placeholder="trip title" />
+      <button type="submit" class="px-6 py-3 bg-black text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-all">save trip</button>
+    </form>
   </div>
 
   <!-- two column canvas -->
@@ -115,6 +120,8 @@
     try { return JSON.parse(t); } catch { try { return JSON.parse(t.replace(/,\s*([}\]])/g, '$1')); } catch { return null; } }
   }
   const data = extractJSON(rawText);
+  // populate save payload regardless of parse result
+  document.getElementById('save-payload').value = rawText || '';
   if (!data || !Array.isArray(data.travel_plans)) {
     rawBlock.classList.remove('hidden');
     rawPre.textContent = rawText || "(no content)";

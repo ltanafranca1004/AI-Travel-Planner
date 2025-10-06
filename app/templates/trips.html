@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pt-8 sm:pt-12">
+  <div class="w-full flex justify-center mb-6">
+    <a href="{{ url_for('main.home') }}" class="hover:opacity-80">
+      <img src="{{ url_for('static', filename='img/turt-logo.png') }}" alt="Turtle Trips" class="h-16"/>
+    </a>
+  </div>
+  <h1 class="text-3xl sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif title-3d mb-6">my trips</h1>
+
+  {% if trips %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {% for t in trips %}
+    <a href="{{ url_for('main.trips_view', trip_id=t.id) }}" class="plan-card relative bg-white/80 rounded-2xl p-5 shadow-sm flex flex-col gap-2 transition transform hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-emerald-400">
+      <div class="flex items-center justify-between">
+        <div class="text-lg font-bold">{{ t.title }}</div>
+        <div class="text-xs text-slate-600">{{ t.created_at.strftime('%Y-%m-%d') }}</div>
+      </div>
+      <div class="text-sm text-slate-600">click to view</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center text-slate-600">no trips saved yet. generate a plan and hit save!</div>
+  {% endif %}
+</section>
+{% endblock %}
+

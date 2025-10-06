@@ -1,6 +1,9 @@
 # routes.py
 import json
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_required, current_user
+from . import db
+from .models import Trip
 import google.generativeai as genai
 from dotenv import load_dotenv
 import os
@@ -55,4 +58,35 @@ def generate():
         payload=generated_content,
         google_maps_api_key=GOOGLE_MAPS_API_KEY,
         title="turtle trips — plan",
+    )
+
+
+@bp.get("/trips")
+@login_required
+def trips_list():
+    trips = Trip.query.filter_by(user_id=current_user.id).order_by(Trip.created_at.desc()).all()
+    return render_template("trips.html", trips=trips, title="turtle trips — my trips")
+
+
+@bp.post("/trips/save")
+@login_required
+def trips_save():
+    title = (request.form.get("title") or "").strip() or "my trip"
+    payload = request.form.get("payload") or "{}"
+    t = Trip(user_id=current_user.id, title=title[:255], payload_json=payload)
+    db.session.add(t)
+    db.session.commit()
+    flash("trip saved", "success")
+    return redirect(url_for("main.trips_list"))
+
+
+@bp.get("/trips/<int:trip_id>")
+@login_required
+def trips_view(trip_id: int):
+    trip = Trip.query.filter_by(id=trip_id, user_id=current_user.id).first_or_404()
+    return render_template(
+        "generate.html",
+        payload=trip.payload_json,
+        google_maps_api_key=GOOGLE_MAPS_API_KEY,
+        title=f"turtle trips — {trip.title}",
     )

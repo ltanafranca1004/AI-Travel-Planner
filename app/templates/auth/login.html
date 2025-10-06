@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pt-8 sm:pt-12">
+  <div class="w-full flex justify-center mb-6">
+    <a href="{{ url_for('main.home') }}" class="hover:opacity-80">
+      <img src="{{ url_for('static', filename='img/turtplane.png') }}" alt="Turtle Trips" class="h-28"/>
+    </a>
+  </div>
+  <h1 class="text-3xl sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif title-3d mb-6">login</h1>
+  <form method="post" class="max-w-md mx-auto bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5 space-y-4">
+    <div>
+      <label class="block text-sm font-medium mb-1">email</label>
+      <input name="email" type="email" required class="search-bar-outline w-full" placeholder="you@example.com"/>
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">password</label>
+      <input name="password" type="password" required class="search-bar-outline w-full" placeholder="••••••••"/>
+    </div>
+    <div class="flex items-center justify-between">
+      <a href="{{ url_for('auth.forgot') }}" class="text-xs underline">forgot password?</a>
+      <button class="px-6 py-3 bg-black text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-all">login →</button>
+    </div>
+    <div class="text-center text-sm text-slate-600">no account? <a href="{{ url_for('auth.signup') }}" class="underline">sign up</a></div>
+  </form>
+</section>
+{% endblock %}
+
