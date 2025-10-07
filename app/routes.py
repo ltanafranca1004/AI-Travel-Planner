@@ -2,7 +2,6 @@
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from . import db
 from .models import Trip
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -29,12 +28,37 @@ def review():
 
 @bp.post("/generate")
 def generate():
-    # payload is posted from the questionnaire page as a hidden field
+    # payload can come from questionnaire or direct from date picker
     raw = request.form.get("payload", "{}")
-    try:
-        payload = json.loads(raw)
-    except Exception:
-        payload = {"error": "bad payload"}
+    if not raw or raw == "{}":
+        # Build payload from form data (direct from date picker)
+        payload = {
+            "country": request.form.get("country", ""),
+            "city": request.form.get("city", ""),
+            "start_date": request.form.get("start_date", ""),
+            "end_date": request.form.get("end_date", ""),
+            "days": request.form.get("days", "")
+        }
+    else:
+        try:
+            payload = json.loads(raw)
+        except Exception:
+            payload = {"error": "bad payload"}
+
+    # Get user profile preferences if logged in
+    user_preferences = {}
+    if current_user.is_authenticated:
+        user_preferences = {
+            "budget_preference": current_user.budget_preference,
+            "travel_style": current_user.travel_style,
+            "interests": current_user.get_interests(),
+            "must_see": current_user.must_see or "",
+            "must_avoid": current_user.must_avoid or "",
+            "notes": current_user.notes or ""
+        }
+    
+    # Merge user preferences with trip data
+    merged_payload = {**payload, **user_preferences}
 
     # require JSON-only output from Gemini
     prompt = (
@@ -44,7 +68,7 @@ def generate():
         '{"travel_plans":[{"plan_name":"","plan_description":"","daily_plan":[{"day":1,'
         '"date":"YYYY-MM-DD","theme":"","activities":[{"time_of_day":"","spot":"","description":""}]}]}]}. '
         "Budget key: $ = shoestring, $$ = budget, $$$ = comfortable, $$$$ = splurge, $$$$$ = luxury.\n"
-        "Trip data:\n```json\n" + json.dumps(payload, indent=2) + "\n```"
+        "Trip data:\n```json\n" + json.dumps(merged_payload, indent=2) + "\n```"
     )
 
     try:
@@ -71,6 +95,9 @@ def trips_list():
 @bp.post("/trips/save")
 @login_required
 def trips_save():
+    from flask import current_app
+    from . import db
+    
     title = (request.form.get("title") or "").strip() or "my trip"
     payload = request.form.get("payload") or "{}"
     t = Trip(user_id=current_user.id, title=title[:255], payload_json=payload)

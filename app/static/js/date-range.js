@@ -109,10 +109,10 @@
       // notify any listeners
       document.dispatchEvent(new CustomEvent("tt:dates-confirmed", { detail: { ...payload } }));
   
-      // POST to questionnaire page
+      // POST directly to generate (skip questionnaire)
       const form = document.createElement("form");
       form.method = "POST";
-      form.action = "/review";  // keep this path; page now shows questions
+      form.action = "/generate";  // skip questionnaire, go directly to generate
   
       for (const [k,v] of Object.entries(payload)) {
         const input = document.createElement("input");

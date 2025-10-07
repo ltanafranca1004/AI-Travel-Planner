@@ -1,13 +1,10 @@
 from flask import Flask
 import os
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
 from flask_mail import Mail
 from .routes import bp as main_bp
+from .models import db, login_manager
 
 # extensions
-db = SQLAlchemy()
-login_manager = LoginManager()
 mail = Mail()
 
 def create_app():

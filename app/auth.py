@@ -4,8 +4,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import current_user, login_user, logout_user, login_required
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from flask_mail import Message
-from . import db, mail
-from .models import User
+from .models import db, User
+from . import mail
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 from flask import current_app
@@ -31,13 +31,21 @@ def verify_token(token: str, max_age: int, expected_purpose: str):
         return None
 
 
-def send_email(subject: str, recipients: list[str], body: str) -> None:
+def send_email(subject: str, recipients: list[str], body: str) -> bool:
+    """Attempt to send an email. Returns True on success.
+
+    In development, if mail credentials are missing or sending fails, return False
+    so callers can provide an on-screen fallback link.
+    """
     try:
+        # Minimal sanity checks for local/dev environments
+        if not current_app.config.get("MAIL_PASSWORD"):
+            return False
         msg = Message(subject=subject, recipients=recipients, body=body)
         mail.send(msg)
+        return True
     except Exception:
-        # In dev, swallow email errors so local work continues
-        pass
+        return False
 
 
 @bp.get("/login")
@@ -83,12 +91,20 @@ def signup_post():
         flash("account already exists", "error")
         return redirect(url_for("auth.signup"))
 
-    # send verification email
+    # send verification email (with dev fallback link)
     token = generate_token(user.email, "verify")
+    # Use the correct port for local development
     link = url_for("auth.verify_email", token=token, _external=True)
-    send_email("verify your turtle trips account", [user.email], f"click to verify: {link}")
+    if "5000" in link:
+        link = link.replace("5000", "5001")
+    
+    sent = send_email("verify your turtle trips account", [user.email], f"click to verify: {link}")
 
-    flash("check your email to verify your account", "info")
+    if sent:
+        flash("check your email to verify your account", "info")
+    else:
+        # Dev fallback so local testing works without SMTP
+        flash(f"email not sent in dev — verify using this link: {link}", "info")
     return redirect(url_for("auth.login"))
 
 
@@ -123,8 +139,18 @@ def forgot_post():
     if user:
         token = generate_token(user.email, "reset")
         link = url_for("auth.reset", token=token, _external=True)
-        send_email("reset your turtle trips password", [user.email], f"reset link: {link}")
-    flash("if an account exists, a reset email was sent", "info")
+        # Use the correct port for local development
+        if "5000" in link:
+            link = link.replace("5000", "5001")
+        
+        sent = send_email("reset your turtle trips password", [user.email], f"reset link: {link}")
+        if not sent:
+            # Dev fallback: surface the link so you can complete the flow locally
+            flash(f"email not sent in dev — use this reset link: {link}", "info")
+        else:
+            flash("if an account exists, a reset email was sent", "info")
+    else:
+        flash("if an account exists, a reset email was sent", "info")
     return redirect(url_for("auth.login"))
 
 
@@ -162,5 +188,51 @@ def reset_post(token):
 def logout():
     logout_user()
     return redirect(url_for("main.home"))
+
+
+@bp.get("/profile")
+@login_required
+def profile():
+    return render_template("auth/profile.html", title="turtle trips — profile")
+
+
+@bp.post("/profile")
+@login_required
+def profile_post():
+    budget = request.form.get("budget_preference", "").strip()
+    travel_style = request.form.get("travel_style", "").strip()
+    bio = request.form.get("bio", "").strip()
+    must_see = request.form.get("must_see", "").strip()
+    must_avoid = request.form.get("must_avoid", "").strip()
+    notes = request.form.get("notes", "").strip()
+    interests = request.form.getlist("interests")  # Get multiple checkbox values
+    
+    # Validate budget preference
+    valid_budgets = ["$", "$$", "$$$", "$$$$", "$$$$$"]
+    if budget in valid_budgets:
+        current_user.budget_preference = budget
+    
+    # Validate travel style
+    valid_styles = ["chill", "balanced", "packed"]
+    if travel_style in valid_styles:
+        current_user.travel_style = travel_style
+    
+    # Update all profile fields
+    current_user.bio = bio
+    current_user.must_see = must_see
+    current_user.must_avoid = must_avoid
+    current_user.notes = notes
+    
+    # Update interests
+    current_user.set_interests(interests)
+    
+    try:
+        db.session.commit()
+        flash("profile updated", "success")
+    except Exception:
+        db.session.rollback()
+        flash("error updating profile", "error")
+    
+    return redirect(url_for("auth.profile"))
 
 

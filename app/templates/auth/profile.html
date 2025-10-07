@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="pt-8 sm:pt-12">
+  <div class="w-full flex justify-center mb-6">
+    <a href="{{ url_for('main.home') }}" class="hover:opacity-80">
+      <img src="{{ url_for('static', filename='img/turtplane.png') }}" alt="Turtle Trips" class="h-28"/>
+    </a>
+  </div>
+  <h1 class="text-3xl sm:text-4xl font-extrabold text-center tracking-tight title-lower-serif title-3d mb-6">profile</h1>
+  
+  <!-- Profile Overview -->
+  <div class="max-w-2xl mx-auto mb-8">
+    <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-xl font-bold">{{ current_user.email }}</h2>
+          <p class="text-sm text-slate-600">member since {{ current_user.created_at.strftime('%B %Y') }}</p>
+        </div>
+        <div class="text-right">
+          <div class="text-sm text-slate-600">budget preference</div>
+          <div class="font-semibold">{{ current_user.budget_preference }}</div>
+        </div>
+      </div>
+      
+      {% if current_user.bio %}
+      <div class="mb-4">
+        <div class="text-sm text-slate-600 mb-1">about</div>
+        <div class="text-sm">{{ current_user.bio }}</div>
+      </div>
+      {% endif %}
+      
+      <div class="flex items-center gap-4 text-sm">
+        <div>
+          <span class="text-slate-600">travel style:</span>
+          <span class="font-medium">{{ current_user.travel_style }}</span>
+        </div>
+        <div>
+          <span class="text-slate-600">trips saved:</span>
+          <span class="font-medium">{{ current_user.trips|length }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Form -->
+  <form method="post" class="max-w-2xl mx-auto bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5 space-y-6">
+    <h3 class="text-lg font-semibold mb-4">edit preferences</h3>
+    
+    <!-- Budget Preference -->
+    <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5">
+      <label class="block text-base font-semibold mb-4">budget per day</label>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <label class="budget-option">
+          <input type="radio" name="budget_preference" value="$" 
+                 {% if current_user.budget_preference == '$' %}checked{% endif %}>
+          <span class="budget-label">
+            <span class="text-lg">$</span>
+            <span class="text-xs">shoestring</span>
+          </span>
+        </label>
+        <label class="budget-option">
+          <input type="radio" name="budget_preference" value="$$" 
+                 {% if current_user.budget_preference == '$$' %}checked{% endif %}>
+          <span class="budget-label">
+            <span class="text-lg">$$</span>
+            <span class="text-xs">budget</span>
+          </span>
+        </label>
+        <label class="budget-option">
+          <input type="radio" name="budget_preference" value="$$$" 
+                 {% if current_user.budget_preference == '$$$' %}checked{% endif %}>
+          <span class="budget-label">
+            <span class="text-lg">$$$</span>
+            <span class="text-xs">comfortable</span>
+          </span>
+        </label>
+        <label class="budget-option">
+          <input type="radio" name="budget_preference" value="$$$$" 
+                 {% if current_user.budget_preference == '$$$$' %}checked{% endif %}>
+          <span class="budget-label">
+            <span class="text-lg">$$$$</span>
+            <span class="text-xs">splurge</span>
+          </span>
+        </label>
+        <label class="budget-option">
+          <input type="radio" name="budget_preference" value="$$$$$" 
+                 {% if current_user.budget_preference == '$$$$$' %}checked{% endif %}>
+          <span class="budget-label">
+            <span class="text-lg">$$$$$</span>
+            <span class="text-xs">luxury</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Interests -->
+    <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5">
+      <label class="block text-base font-semibold mb-4">interests <span class="text-xs font-normal text-slate-500">(select all that apply)</span></label>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {% for tag in [
+          'nature','food','history & culture','nightlife','shopping',
+          'outdoors/adventure','museums','beaches','family-friendly',
+          'photography','iconic sights','hidden gems'
+        ] %}
+        <label class="interest-option">
+          <input type="checkbox" name="interests" value="{{ tag }}" 
+                 {% if tag in current_user.get_interests() %}checked{% endif %}>
+          <span class="interest-label">{{ tag }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Travel Pace -->
+    <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5">
+      <label class="block text-base font-semibold mb-4">travel pace</label>
+      <div class="grid grid-cols-3 gap-3">
+        <!-- Chill -->
+        <label class="pace-option">
+          <input type="radio" name="travel_style" value="chill" 
+                 {% if current_user.travel_style == 'chill' %}checked{% endif %}>
+          <span class="pace-label flex flex-col items-center">
+            <div class="h-24 w-full flex items-center justify-center">
+              <img src="{{ url_for('static', filename='img/turt1-removebg-preview.png') }}"
+                   alt="Chill pace"
+                   class="max-h-full max-w-full object-contain">
+            </div>
+            <span class="text-sm mt-1">chill</span>
+          </span>
+        </label>
+
+        <!-- Balanced -->
+        <label class="pace-option">
+          <input type="radio" name="travel_style" value="balanced" 
+                 {% if current_user.travel_style == 'balanced' %}checked{% endif %}>
+          <span class="pace-label flex flex-col items-center">
+            <div class="h-24 w-full flex items-center justify-center">
+              <img src="{{ url_for('static', filename='img/turt-run-removebg-preview.png') }}"
+                   alt="Balanced pace"
+                   class="max-h-full max-w-full object-contain">
+            </div>
+            <span class="text-sm mt-1">balanced</span>
+          </span>
+        </label>
+
+        <!-- Packed -->
+        <label class="pace-option">
+          <input type="radio" name="travel_style" value="packed" 
+                 {% if current_user.travel_style == 'packed' %}checked{% endif %}>
+          <span class="pace-label flex flex-col items-center">
+            <div class="h-24 w-full flex items-center justify-center">
+              <img src="{{ url_for('static', filename='img/turt-sprint-removebg-preview.png') }}"
+                   alt="Packed pace"
+                   class="max-h-full max-w-full object-contain">
+            </div>
+            <span class="text-sm mt-1">packed</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Additional Details -->
+    <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-sm border border-black/5 space-y-5">
+      <div>
+        <label class="block text-sm font-medium mb-2 text-slate-700">must see</label>
+        <textarea
+          name="must_see"
+          class="search-bar-outline w-full h-24 resize-none"
+          placeholder="spots or experiences you really want...">{{ current_user.must_see or '' }}</textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2 text-slate-700">must avoid</label>
+        <textarea
+          name="must_avoid"
+          class="search-bar-outline w-full h-24 resize-none"
+          placeholder="things to skip or sensitivities...">{{ current_user.must_avoid or '' }}</textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2 text-slate-700">other notes</label>
+        <textarea
+          name="notes"
+          class="search-bar-outline w-full h-24 resize-none"
+          placeholder="dietary needs, mobility, vibe, etc.">{{ current_user.notes or '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- Bio -->
+    <div>
+      <label class="block text-sm font-medium mb-1">about me</label>
+      <textarea name="bio" class="search-bar-outline w-full h-20 resize-none" 
+                placeholder="tell us about your travel style and interests...">{{ current_user.bio or '' }}</textarea>
+    </div>
+
+    <div class="flex items-center justify-between pt-4">
+      <a href="{{ url_for('main.trips_list') }}" class="text-sm underline">view my trips</a>
+      <button class="px-6 py-3 bg-black text-white rounded-full text-sm font-medium hover:bg-slate-800 transition-all">save changes →</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
